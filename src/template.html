@@ -1,0 +1,793 @@
+<title>FPL Insights</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: scouting desk — compact masthead, tab rail, dense sortable tables; club colours never, FDR colours as the one semantic system */
+:root{
+  --bg:#f2f4f8; --surface:#ffffff; --ink:#141b2b; --muted:#5a6478; --line:#dce1ea;
+  --pitch:#b0602c; --pitch-soft:#f5ebe3; --claret:#8a2443;
+  --good:#1f8a4c; --warn:#b97a10; --bad:#b8323a;
+  --f1:#1e7a46; --f2:#57b36f; --f3:#d9ded8; --f4:#e0857a; --f5:#9b2232; --f-ink:#fff; --f3-ink:#2a332d;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e131c; --surface:#151c28; --ink:#e3e8f1; --muted:#8f9bb0; --line:#243044;
+  --pitch:#dd965f; --pitch-soft:#2b2119; --claret:#e07a98;
+  --good:#5cc28a; --warn:#e2ad4a; --bad:#ec6b72;
+  --f1:#2f9a5c; --f2:#3f7a52; --f3:#38423b; --f4:#9c4a44; --f5:#c03445; --f3-ink:#e4ebe6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e131c; --surface:#151c28; --ink:#e3e8f1; --muted:#8f9bb0; --line:#243044;
+  --pitch:#dd965f; --pitch-soft:#2b2119; --claret:#e07a98;
+  --good:#5cc28a; --warn:#e2ad4a; --bad:#ec6b72;
+  --f1:#2f9a5c; --f2:#3f7a52; --f3:#38423b; --f4:#9c4a44; --f5:#c03445; --f3-ink:#e4ebe6; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--body);padding-inline:16px;padding-block:20px 48px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;gap:20px}
+h1,h2,h3{font-family:var(--display);font-weight:700;text-wrap:balance;margin:0;letter-spacing:.01em}
+h1{font-size:clamp(28px,5vw,42px);line-height:1}
+h2{font-size:22px} h3{font-size:18px;font-weight:600}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--pitch)}
+.mast{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid var(--ink);padding-bottom:14px}
+.mast p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.gw{display:flex;gap:22px;flex-wrap:wrap}
+.gw div{display:grid}
+.gw b{font:600 26px var(--display);font-variant-numeric:tabular-nums}
+.gw span{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line)}
+.tabs button{font:600 17px var(--display);letter-spacing:.03em;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:8px 14px;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--pitch)}
+.tabs button:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--pitch);outline-offset:2px}
+.filters{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:end}
+.filters label{display:grid;gap:3px;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+input,select{font:14px var(--body);background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+input[type=range]{padding:0;accent-color:var(--pitch)}
+.chips{display:flex;gap:4px}
+.chips button{font:600 13px var(--mono);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--pitch);border-color:var(--pitch);color:var(--bg)}
+.tbl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:7px 9px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{font:500 11px var(--mono);text-decoration:underline dotted var(--line);text-underline-offset:3px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);position:sticky;top:0;background:var(--surface);cursor:pointer;user-select:none}
+th.on{color:var(--pitch)} th.on::after{content:" ▾"} th.on.asc::after{content:" ▴"}
+th:first-child,td:first-child,th.l,td.l{text-align:left}
+tbody tr:hover{background:var(--pitch-soft)}
+td.name{font-weight:600}
+td.name small{display:block;font:400 12px var(--body);color:var(--muted)}
+.pos{font:600 11px var(--mono);padding:2px 6px;border-radius:4px;border:1px solid var(--line)}
+.num-strong{font-weight:600}
+.st{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.st.a{display:none}.st.d{background:var(--warn)}.st.i,.st.s,.st.u{background:var(--bad)}
+.fdr{display:inline-flex;gap:2px}
+.fdr i{font:500 10.5px var(--mono);font-style:normal;width:38px;text-align:center;padding:2px 0;border-radius:3px}
+.d1{background:var(--f1);color:var(--f-ink)}.d2{background:var(--f2);color:var(--f-ink)}.d3{background:var(--f3);color:var(--f3-ink)}.d4{background:var(--f4);color:var(--f-ink)}.d5{background:var(--f5);color:var(--f-ink)}
+.meta{color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:6px;align-content:start;min-width:0}
+.panel h3{font-size:16px}
+.panel p{font-size:12px!important;line-height:1.4}
+.panel p{margin:0;color:var(--muted);font-size:13px}
+.rank{list-style:none;margin:0;padding:0;display:grid}
+.rank li{display:grid;grid-template-columns:1fr auto;gap:1px 10px;padding:5px 0;font-size:13px;border-top:1px solid var(--line);align-items:baseline}
+.rank li b{font-weight:600}
+.rank li span{color:var(--muted);font-size:11px}
+.rank li em{font:600 13px var(--mono);font-style:normal;color:var(--pitch);grid-row:span 2;align-self:center}
+.bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden;grid-column:1/-1}
+.bar>div{height:100%;background:var(--pitch)}
+.note{font-size:13px;color:var(--muted);max-width:75ch}
+.note b{color:var(--ink)}
+.foot{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font-size:12px}
+.foot a{color:var(--pitch)}
+.nm{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.badge{font:600 10.5px var(--mono);letter-spacing:.04em;padding:3px 7px;border-radius:4px;background:var(--cbg);color:var(--cfg);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 12%,transparent)}
+.filters .grow{flex:1 1 280px}
+.filters .grow input{width:100%}
+.picker{position:relative;display:grid;gap:3px}
+.picker>label{display:block;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.pbox{display:flex;flex-wrap:wrap;gap:5px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:4px 6px;min-height:36px;cursor:text}
+.pbox:focus-within{outline:2px solid var(--pitch);outline-offset:1px}
+.pbox input{border:0;outline:0;flex:1 1 140px;min-width:0;padding:3px 2px;background:transparent}
+.picked{display:contents}
+.pchip{display:inline-flex;align-items:center;gap:6px;background:var(--pitch-soft);border-radius:999px;padding:2px 4px 2px 10px;font-size:13px;font-weight:600}
+.pchip button{border:0;background:none;color:var(--muted);font-size:16px;line-height:1;cursor:pointer;padding:0 4px;border-radius:50%}
+.pchip button:hover{color:var(--bad)}
+.sugg{position:absolute;z-index:5;top:100%;left:0;right:0;margin:4px 0 0;padding:4px;list-style:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px color-mix(in srgb,var(--ink) 15%,transparent);max-height:320px;overflow-y:auto}
+.sugg li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 8px;border-radius:5px;cursor:pointer;font-weight:600}
+.sugg li small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+.sugg li[aria-selected="true"],.sugg li:hover{background:var(--pitch-soft)}
+.sugg li.none{color:var(--muted);cursor:default;font-weight:400}
+.teamchips{display:flex;flex-wrap:wrap;gap:5px}
+.tchip{font:600 11px var(--mono);letter-spacing:.04em;padding:4px 8px;border-radius:4px;cursor:pointer;background:var(--surface);color:var(--muted);border:1px solid var(--line)}
+.tchip:hover{color:var(--ink);border-color:var(--muted)}
+.tchip[aria-pressed="true"]{background:var(--cbg);color:var(--cfg);border-color:var(--cbg)}
+.isecs{display:grid;gap:18px}
+.isec>summary{list-style:none;cursor:pointer;display:grid;gap:2px;padding:6px 0 10px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.isec>summary::-webkit-details-marker{display:none}
+.isec>summary h2::before{content:"▸ ";color:var(--pitch);display:inline-block;transition:transform .15s}
+.isec[open]>summary h2::before{content:"▾ "}
+.isec>summary span{color:var(--muted);font-size:13px;max-width:90ch}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:980px){.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.grid3{grid-template-columns:1fr}}
+.phead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dirbtn{font:600 12px var(--mono);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer;white-space:nowrap}
+.dirbtn:hover{border-color:var(--pitch);color:var(--pitch)}
+.scroll{max-height:330px;overflow-y:auto;overflow-x:hidden;border-top:1px solid var(--line)}
+table.mini{table-layout:fixed}
+table.mini th,table.mini td{padding:5px 6px;font-size:13px}
+table.mini th:first-child,table.mini td.rk{width:30px}
+table.mini th:last-child,table.mini td.val{width:72px}
+table.mini td.l{white-space:normal;overflow-wrap:anywhere}
+table.mini .badge{flex:none}
+table.mini th{cursor:default;text-decoration:none}
+table.mini td.rk{color:var(--muted);width:1%}
+table.mini td.val{font:600 13px var(--mono)}
+table.mini small{display:block;color:var(--muted);font-size:11px}
+.cnt{font-size:11px;color:var(--muted)}
+.lsum{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px}
+.lbig{display:grid;align-content:center;background:var(--pitch-soft);border-radius:6px;padding:6px 14px;min-width:120px}
+.lbig span{font:500 10.5px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.lbig b{font:700 30px/1.05 var(--display);color:var(--pitch);font-variant-numeric:tabular-nums}
+.lbig small{color:var(--muted);font-size:11px}
+.lsts{flex:1 1 400px;display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px 10px;align-content:center}
+.lst{display:grid;border-left:2px solid var(--line);padding-left:8px}
+.lst span{font:500 10px var(--mono);text-transform:uppercase;letter-spacing:.04em;color:var(--muted);white-space:nowrap}
+.lst b{font:600 14px var(--mono);font-variant-numeric:tabular-nums}
+.lsum .lwarn{flex-basis:100%;margin:0;font-size:12px}
+:root{--grass1:#5d8a60;--grass2:#557f58;--chalk:rgba(255,255,255,.55);--grass-ink:#f4f8f2}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--grass1:#2f4a33;--grass2:#2a432e;--chalk:rgba(255,255,255,.35);--grass-ink:#e6efe4}}
+:root[data-theme="dark"]{--grass1:#2f4a33;--grass2:#2a432e;--chalk:rgba(255,255,255,.35);--grass-ink:#e6efe4}
+.pitch{display:grid;gap:10px;min-width:0;max-width:760px;margin-inline:auto;width:100%}
+.field{position:relative;overflow:hidden;display:grid;gap:12px;padding:22px 8px 30px;border-radius:10px;
+  background:repeating-linear-gradient(180deg,var(--grass1) 0 48px,var(--grass2) 48px 96px);border:2px solid var(--chalk);box-shadow:inset 0 0 40px rgba(0,0,0,.12)}
+.field>.prow{position:relative;z-index:1}
+.mk{position:absolute;border:2px solid var(--chalk);pointer-events:none}
+.mk.box{top:-2px;left:22%;right:22%;height:118px;border-top:0}
+.mk.six{top:-2px;left:38%;right:38%;height:40px;border-top:0}
+.mk.arc{top:84px;left:50%;width:120px;height:68px;margin-left:-60px;border-radius:0 0 60px 60px/0 0 34px 34px;border-top:0;clip-path:inset(34px 0 0 0)}
+.mk.spot{top:82px;left:50%;width:5px;height:5px;margin-left:-3px;border:0;background:var(--chalk);border-radius:50%}
+.mk.circle{bottom:-62px;left:50%;width:124px;height:124px;margin-left:-62px;border-radius:50%}
+.mk.cspot{bottom:-3px;left:50%;width:6px;height:6px;margin-left:-3px;border:0;background:var(--chalk);border-radius:50%}
+.field .pcard.ghost{color:var(--grass-ink);border-color:var(--chalk);background:rgba(255,255,255,.08)}
+.field .pcard.ghost .plus{color:var(--grass-ink)}
+.field .pcard.ghost:hover{background:rgba(255,255,255,.18);color:var(--grass-ink)}
+.bench{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 8px}
+.prow{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+.pcard{position:relative;width:96px;background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:6px 4px 5px;display:grid;justify-items:center;gap:2px;text-align:center;font-size:11px;box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 10%,transparent);cursor:pointer;font-family:var(--body);color:var(--ink)}
+.pcard:hover{border-color:var(--pitch)}
+.pcard b{font-size:12px;line-height:1.15;overflow-wrap:anywhere}
+.pcard .xp{font:600 13px var(--mono);color:var(--pitch)}
+.pcard .xp small{font:400 9px var(--mono);color:var(--muted)}
+.pcard .meta2{color:var(--muted);font-size:10px;display:flex;align-items:center;gap:4px}
+.pcard .dots{display:flex;gap:3px}
+.pcard .dots i{width:7px;height:7px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.pcard .opp{font:500 9.5px var(--mono);padding:1px 4px;border-radius:3px;white-space:nowrap}
+.pcard .badge{font-size:9.5px;padding:1px 5px}
+.pcard.ghost{color:var(--muted);border:1.5px dashed color-mix(in srgb,var(--pitch) 45%,var(--line));background:color-mix(in srgb,var(--surface) 60%,transparent);box-shadow:none;min-height:84px;align-content:center;font:600 11px var(--mono)}
+.pcard.ghost.opt{opacity:.55;min-height:60px;width:60px}
+.pcard.ghost:hover{color:var(--pitch);opacity:1}
+.pcard .plus{font-size:20px;line-height:1;color:var(--pitch)}
+.pcard .rm{position:absolute;top:1px;right:3px;border:0;background:none;color:var(--muted);font-size:14px;cursor:pointer;line-height:1;padding:2px}
+.pcard .rm:hover{color:var(--bad)}
+.pcard .flag{position:absolute;top:4px;left:5px;background:var(--warn);color:#fff;font:700 9px var(--mono);border-radius:50%;width:13px;height:13px;display:grid;place-items:center}
+.cv{display:flex;gap:3px}
+.cv button{font:600 9.5px var(--mono);width:20px;height:18px;border-radius:4px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer;padding:0}
+.cv button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+@media (max-width:520px){.pcard{width:calc(25% - 6px)}.pcard b{font-size:11px}}
+.quick{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.quick>span{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-right:4px}
+.qbtn{font:500 13px var(--body);border:1px solid transparent;background:color-mix(in srgb,var(--ink) 9%,var(--surface));color:var(--ink);border-radius:999px;padding:5px 13px;cursor:pointer}
+.qbtn:hover{background:color-mix(in srgb,var(--ink) 16%,var(--surface))}
+.qbtn:active{background:color-mix(in srgb,var(--ink) 22%,var(--surface))}
+#lbudget{width:90px}
+.lst.neg b{color:var(--bad)}
+.bench{display:grid;gap:6px}
+.blabel{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:center}
+.pcard.bcard{background:color-mix(in srgb,var(--surface) 85%,var(--bg))}
+.pcard .sw{position:absolute;top:1px;left:3px;border:0;background:none;color:var(--muted);font-size:12px;cursor:pointer;line-height:1;padding:2px}
+.pcard .sw:hover,.pcard .sw[aria-pressed="true"]{color:var(--pitch)}
+.pcard.swapsel{outline:2px solid var(--pitch);outline-offset:1px}
+.pcard .flag{left:auto;right:18px}
+.modal{position:fixed;inset:0;z-index:20;background:color-mix(in srgb,var(--ink) 45%,transparent);display:grid;justify-items:center;align-items:start;padding:6vh 16px 16px}
+.mbox{background:var(--surface);border-radius:10px;width:min(760px,100%);max-height:min(680px,86vh);display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:10px;padding:14px 16px;box-shadow:0 20px 50px color-mix(in srgb,var(--ink) 30%,transparent)}
+.mhead{display:flex;justify-content:space-between;align-items:center}
+.mclose{border:0;background:none;font-size:22px;color:var(--muted);cursor:pointer}
+.mfilters{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:end}
+.mfilters input[type=search]{flex:1 1 220px}
+.mfilters label{display:grid;gap:3px;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.mtbl{overflow:auto;border:1px solid var(--line);border-radius:6px;min-height:0}
+#mtable td,#mtable th{padding:6px 8px}
+#mtable td small{display:block;color:var(--muted);font-size:11px}
+#mtable tr.pickable{cursor:pointer}
+#mtable tr.off{opacity:.45;cursor:not-allowed}
+.lwarn{color:var(--warn)!important}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+.linkbtn{background:none;border:0;padding:0;color:var(--ink);font:inherit;font-weight:600;cursor:pointer;text-align:left}
+.linkbtn:hover{color:var(--pitch);text-decoration:underline}
+@media (prefers-reduced-motion:no-preference){.tabs button{transition:color .15s,border-color .15s}}
+</style>
+<div class="wrap">
+<header class="mast">
+  <div>
+    <div class="eyebrow">Premier League 2026/27 · Fantasy</div>
+    <h1>FPL Insights</h1>
+    <p id="sub"></p>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" data-tab="spillere" aria-selected="true">Spillere</button>
+  <button role="tab" data-tab="klubber" aria-selected="false">Klubber</button>
+  <button role="tab" data-tab="innsikt" aria-selected="false">Fantasy-innsikt</button>
+  <button role="tab" data-tab="kamper" aria-selected="false">Kampprogram</button>
+  <button role="tab" data-tab="lag" aria-selected="false">Lagbygger</button>
+</nav>
+
+<section id="tab-spillere" class="wrap">
+  <div class="filters">
+    <label>Posisjon<div class="chips" id="posChips"></div></label>
+    <label for="maxp">Maks pris <span id="maxpv"></span><input id="maxp" type="range" min="40" max="160" step="5" value="160"></label>
+    <label for="minm">Min. minutter <span id="minmv"></span><input id="minm" type="range" min="0" max="450" step="45" value="90"></label>
+    <button type="button" id="preset" class="dirbtn">Nullstill filtre</button>
+  </div>
+  <div class="filters">
+    <div class="grow picker"><label for="pk-pclub-in">Klubber</label>
+      <div class="pbox" data-pk="pk-pclub"><span class="picked"></span><input id="pk-pclub-in" type="text" placeholder="Søk og velg klubber" autocomplete="off" role="combobox" aria-expanded="false"></div>
+      <ul class="sugg" role="listbox" hidden></ul>
+    </div>
+    <div class="grow picker"><label for="pk-pplay-in">Spillere</label>
+      <div class="pbox" data-pk="pk-pplay"><span class="picked"></span><input id="pk-pplay-in" type="text" placeholder="Søk og velg spillere" autocomplete="off" role="combobox" aria-expanded="false"></div>
+      <ul class="sugg" role="listbox" hidden></ul>
+    </div>
+  </div>
+  <div class="tbl"><table id="ptable"><thead></thead><tbody></tbody></table></div>
+  <div class="meta"><span id="pcount"></span><span>Klikk en kolonne for å sortere · FDR-brikker viser neste 5 kamper (H = hjemme)</span></div>
+</section>
+
+<section id="tab-innsikt" class="wrap" hidden>
+  <div class="filters">
+    <label>Posisjon<div class="chips" id="iposChips"></div></label>
+<div class="grow picker"><label for="pk-iplay-in">Spillere</label>
+      <div class="pbox" data-pk="pk-iplay"><span class="picked"></span><input id="pk-iplay-in" type="text" placeholder="Søk og velg spillere" autocomplete="off" role="combobox" aria-expanded="false"></div>
+      <ul class="sugg" role="listbox" hidden></ul>
+    </div>
+    <button type="button" id="ireset" class="dirbtn">Nullstill filtre</button>
+  </div>
+  <div class="filters"><label>Lag (velg ett eller flere)<div class="teamchips" id="iteams"></div></label></div>
+  <div id="insights" class="isecs"></div>
+</section>
+
+<section id="tab-klubber" class="wrap" hidden>
+  <div class="filters">
+    <div class="grow picker"><label for="pk-club-in">Klubber</label>
+      <div class="pbox" data-pk="pk-club"><span class="picked"></span><input id="pk-club-in" type="text" placeholder="Søk og velg klubber" autocomplete="off" role="combobox" aria-expanded="false"></div>
+      <ul class="sugg" role="listbox" hidden></ul>
+    </div>
+  </div>
+  <div class="tbl"><table id="ctable"><thead></thead><tbody></tbody></table></div>
+  <div class="meta"><span>Lagsum av spillerne i datasettet · Klikk et klubbnavn for å se spillerne</span></div>
+</section>
+
+<section id="tab-kamper" class="wrap" hidden>
+  <div class="tbl"><table id="ftable"><thead></thead><tbody></tbody></table></div>
+  <div class="meta"><span>Sortert etter snitt-FDR for GW6–11 (lavest = lettest). 1 = lett, 5 = svært vanskelig.</span></div>
+</section>
+<section id="tab-lag" class="wrap" hidden>
+  <div class="filters">
+    <div class="grow picker"><label for="pk-team-in">Legg til spiller (<span id="lcount">0</span> av 15) · eller klikk en posisjon på banen</label>
+      <div class="pbox" data-pk="pk-team"><span class="picked"></span><input id="pk-team-in" type="text" placeholder="Søk opp en spiller" autocomplete="off" role="combobox" aria-expanded="false"></div>
+      <ul class="sugg" role="listbox" hidden></ul>
+    </div>
+    <label for="lbudget">Budsjett (£m)<input id="lbudget" type="number" min="50" max="150" step="0.5" value="100"></label>
+    <button type="button" id="lclear" class="dirbtn">Tøm laget</button>
+  </div>
+  <div class="quick" id="lquick">
+    <span>Hurtigvalg innenfor budsjett:</span>
+    <button type="button" class="qbtn" data-q="under" title="Populære spillere (høy eierandel) som har scoret og assistert mindre enn xGI tilsier">Underpresterende poppis</button>
+    <button type="button" class="qbtn" data-q="over" title="Populære spillere (høy eierandel) som har scoret og assistert mer enn xGI tilsier">Overpresterende poppis</button>
+    <button type="button" class="qbtn" data-q="xp" title="Troppen på 15 som gir høyest forventede poeng for startelleveren neste runde, inkludert kaptein">Høyest forventet poengsum</button>
+    <button type="button" class="qbtn" data-q="own" title="Troppen med de mest eide spillerne">Mest eid</button>
+    <button type="button" class="qbtn" data-q="form" title="Spillerne med høyest form (snitt poeng per kamp siste 30 dager)">Formspillere</button>
+    <button type="button" class="qbtn" data-q="fdr" title="Forventede poeng justert for hvor lett kampprogrammet er de neste 5 rundene">Lett kampprogram</button>
+  </div>
+  <div class="lsum" id="lsum"></div>
+  <div class="pitch" id="pitch"></div>
+  <p class="note" id="lmsg"></p>
+  <div class="modal" id="lmodal" hidden>
+    <div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+      <div class="mhead"><h3 id="mtitle">Velg spiller</h3><button type="button" class="mclose" id="mclose" aria-label="Lukk">×</button></div>
+      <div class="mfilters">
+        <input id="mq" type="search" placeholder="Søk på spiller eller klubb" autocomplete="off">
+        <div class="chips" id="mpos"></div>
+        <label for="mmax">Maks pris <span id="mmaxv"></span><input id="mmax" type="range" min="40" max="160" step="5" value="160"></label>
+      </div>
+      <div class="mtbl"><table id="mtable"><thead></thead><tbody></tbody></table></div>
+      <div class="cnt" id="mcnt"></div>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">Data: <a href="https://fantasy.premierleague.com" target="_blank" rel="noopener">Fantasy Premier League</a> (fantasy.premierleague.com). Sist oppdatert __UPDATED__. Uoffisiell side, ikke tilknyttet Premier League.</footer>
+</div>
+
+<script>
+const D = __DATA__;
+const K = ['id','name','team','pos','cost','pts','gw','form','sel','min','starts','g','a','cs','gc','bonus','saves','dc','xg','xa','xgc','status','chance','tin','tout','ep','pen'];
+const POS = {1:'MÅL',2:'FOR',3:'MID',4:'ANG'};
+const CLUBC = {1:['#A8323A','#ffffff'],2:['#6B2E45','#C9DCEB'],3:['#93302E','#ffffff'],4:['#A83A36','#ffffff'],5:['#2F5F99','#ffffff'],6:['#2F4F82','#ffffff'],7:['#8CC4D6','#14283F'],8:['#34508A','#ffffff'],9:['#2E4A8C','#ffffff'],10:['#E6E6E3','#222222'],11:['#D9A55A','#1D1D1D'],12:['#355A9A','#ffffff'],13:['#EEF0F4','#2B4677'],14:['#A6323F','#ffffff'],15:['#8DB8D8','#1F2E55'],16:['#CC4A3F','#111111'],17:['#3A3637','#F1F1F1'],18:['#A83838','#ffffff'],19:['#2A3460','#ffffff'],20:['#B13A43','#ffffff']};
+const clubStyle = t=>`--cbg:${CLUBC[t][0]};--cfg:${CLUBC[t][1]}`;
+const badge = t=>`<span class="badge" style="${clubStyle(t)}" title="${TEAMS[t].name}">${TEAMS[t].short}</span>`;
+const TEAMS = Object.fromEntries(D.teams.map(t=>[t[0],{id:t[0],name:t[1],short:t[2]}]));
+const P = D.players.map(r=>{const o={};K.forEach((k,i)=>o[k]=r[i]);
+  o.price=o.cost/10; o.xgi=+(o.xg+o.xa).toFixed(2); o.gi=o.g+o.a;
+  o.dc90=o.min?o.dc/o.min*90:0; o.ppm=o.pts/o.price; o.net=o.tin-o.tout; o.p90=o.min?o.pts/o.min*90:0; o.rel=o.xgi>=0.3?(o.gi-o.xgi)/o.xgi*100:null; return o;});
+
+// fixtures per team
+const FX = {}; D.teams.forEach(t=>FX[t[0]]=[]);
+D.fx.forEach(([gw,h,a,hd,ad])=>{FX[h].push({gw,opp:a,home:true,d:hd});FX[a].push({gw,opp:h,home:false,d:ad});});
+Object.values(FX).forEach(l=>l.sort((x,y)=>x.gw-y.gw));
+const next5 = t=>FX[t].filter(f=>f.gw>=D.next.id && f.gw<D.next.id+5);
+const fdrAvg = t=>{const l=next5(t);return l.length?l.reduce((s,f)=>s+f.d,0)/l.length:3};
+const chip = f=>`<i class="d${f.d}" title="GW${f.gw}: ${TEAMS[f.opp].name} ${f.home?'hjemme':'borte'} (FDR ${f.d})">${TEAMS[f.opp].short}${f.home?'·H':''}</i>`;
+const fdrHtml = t=>`<span class="fdr">${next5(t).map(chip).join('')}</span>`;
+const fmt = (v,d=1)=>v==null?'–':(+v).toFixed(d);
+const relHtml = v=>v==null?'<span style="color:var(--muted)">N/A</span>':`<span style="color:var(${v>=0?'--good':'--bad'})">${v>0?'+':''}${Math.round(v)} %</span>`;
+const xpTip = p=>{const x=p.xpParts;return `Spilletid ${x.app.toFixed(1)} · Mål/assist ${x.att.toFixed(1)} · Clean sheet ${x.cs.toFixed(1)}${x.gc?' · Baklengs '+x.gc.toFixed(1):''}${x.dc?' · DC '+x.dc.toFixed(1):''}${x.sav?' · Redninger '+x.sav.toFixed(1):''} · Bonus ${x.bon.toFixed(1)}`};
+const esc = s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const stTitle = {a:'',d:'Usikker',i:'Skadet',s:'Utestengt',u:'Utilgjengelig'};
+
+// header
+const dl = new Date(D.next.deadline);
+const dlTxt = dl.toLocaleString('nb-NO',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Oslo'});
+document.getElementById('sub').textContent = `Data fra Fantasy Premier League etter gameweek ${D.gw}. Frist for GW${D.next.id}: ${dlTxt}.`;
+
+// tabs
+const tabs=[...document.querySelectorAll('.tabs button')];
+function showTab(id){tabs.forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===id));
+  ['spillere','innsikt','klubber','kamper','lag'].forEach(t=>document.getElementById('tab-'+t).hidden=t!==id);
+  try{history.replaceState(null,'','#'+id)}catch(e){}}
+tabs.forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+const h=location.hash.slice(1); if(['spillere','innsikt','klubber','kamper','lag'].includes(h)) showTab(h);
+
+// ---------- expected points model (next GW)
+(function(){
+  const G=Math.max(1,D.gw);
+  const TS={};
+  D.teams.forEach(t=>{const ps=P.filter(p=>p.team===t[0]);
+    const anchor=[...ps].sort((a,b)=>b.min-a.min)[0];
+    const games=Math.max(1,Math.round(anchor.min/90));
+    TS[t[0]]={games,xg:ps.reduce((s,p)=>s+p.xg,0)/games,xgc:anchor.xgc/(anchor.min/90)}});
+  const avgXG=Object.values(TS).reduce((s,t)=>s+t.xg,0)/20, avgXGC=Object.values(TS).reduce((s,t)=>s+t.xgc,0)/20;
+  const GOAL={1:10,2:6,3:5,4:4}, CSP={1:4,2:4,3:1,4:0};
+  const prior={};[1,2,3,4].forEach(pos=>{const ps=P.filter(p=>p.pos===pos&&p.min>=180);const m=ps.reduce((s,p)=>s+p.min,0)/90||1;
+    prior[pos]={xg:ps.reduce((s,p)=>s+p.xg,0)/m,xa:ps.reduce((s,p)=>s+p.xa,0)/m,bon:ps.reduce((s,p)=>s+p.bonus,0)/m,sav:ps.reduce((s,p)=>s+p.saves,0)/m}});
+  const K=2; // games of prior weight
+  const shrink=(v,p,pr)=>(v+pr[p.pos]*K)/(p.min/90+K);
+  P.forEach(p=>{
+    const tdc=(D.dct||{})[p.id]; p.dch=tdc?tdc[0]:0; p.dca=tdc?tdc[1]:0;
+    const games=TS[p.team].games;
+    const pPlay=p.status==='a'?(p.chance==null?1:p.chance/100):(p.status==='d'?(p.chance==null?0.5:p.chance/100):0);
+    // nyere kamper teller mer: vekt 1 for siste runde, deretter 0,8, 0,64 ...
+    const rw=(D.rw||{})[p.id]; const RWG=3.36;
+    const wm=rw?rw[0]:p.min, wg=rw?RWG:games;
+    const p60=Math.min(1,(rw?rw[5]:p.starts)/wg), pApp=Math.min(1,Math.max(p60,(p.pos===1?(rw?rw[5]:p.starts):p.dca)/(rw?wg:games)));
+    const minsShare=Math.min(1,wm/(wg*90));
+    const penAdd=p.pen===1?0.2:p.pen===2?0.03:0; // forventet straffe-xG per kamp for 1. og 2. straffetaker
+    const n90=wm/90+K, pr=prior[p.pos];
+    const xg90=((rw?rw[1]:p.xg)+(pr.xg+penAdd)*K)/n90,
+          xa90=((rw?rw[2]:p.xa)+pr.xa*K)/n90,
+          bon90=((rw?rw[3]:p.bonus)+pr.bon*K)/n90,
+          sav90=((rw?rw[4]:p.saves)+pr.sav*K)/n90;
+    const dcRate=(p.dch+0.2)/(p.dca+1);
+    const fx=(FX[p.team]||[]).filter(f=>f.gw===D.next.id);
+    let tot=0;const parts={app:0,att:0,cs:0,gc:0,dc:0,bon:0,sav:0};
+    fx.forEach(f=>{
+      const ha=f.home?1.1:0.9;
+      const attM=(TS[f.opp].xgc/avgXGC)*ha;
+      const lam=TS[p.team].xgc*(TS[f.opp].xg/avgXG)*(f.home?0.9:1.1);
+      const m=minsShare;
+      parts.app+=pApp+p60;
+      parts.att+=(xg90*GOAL[p.pos]+xa90*3)*m*attM;
+      parts.cs+=Math.exp(-lam)*CSP[p.pos]*p60;
+      if(p.pos<=2)parts.gc-=lam/2*p60;
+      if(p.pos>1)parts.dc+=dcRate*2;
+      parts.bon+=bon90*m;
+      if(p.pos===1)parts.sav+=sav90/3*m;
+    });
+    for(const k in parts){parts[k]*=pPlay;tot+=parts[k]}
+    p.xp=Math.max(0,tot); p.xpParts=parts; p.xpm=p.xp/p.price; p.nfx=fx.length;
+  });
+})();
+
+// ---------- multi-select search (pickers)
+const norm=s=>s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ø/g,'o').replace(/æ/g,'ae').replace(/å/g,'a');
+P.forEach(p=>p.nn=norm(p.name));
+const PBYID=Object.fromEntries(P.map(p=>[p.id,p]));
+const CLUBS=D.teams.map(t=>({id:t[0],name:t[1],short:t[2],nn:norm(t[1]+' '+t[2])}));
+const CBYID=Object.fromEntries(CLUBS.map(c=>[c.id,c]));
+const playerOpts={items:P,byId:PBYID,
+  rank:(a,b,q)=>(b.nn.startsWith(q)-a.nn.startsWith(q))||b.pts-a.pts,
+  chip:p=>`${esc(p.name)} ${badge(p.team)}`,
+  row:p=>`<span>${esc(p.name)}<small>${POS[p.pos]} · £${p.price.toFixed(1)} · ${p.pts} poeng</small></span>${badge(p.team)}`};
+const clubOpts={items:CLUBS,byId:CBYID,
+  rank:(a,b,q)=>(b.nn.startsWith(q)-a.nn.startsWith(q))||a.name.localeCompare(b.name),
+  chip:c=>`${badge(c.id)} ${esc(c.name)}`,
+  row:c=>`<span>${esc(c.name)}</span>${badge(c.id)}`};
+function makePicker(pid,opts,onChange){
+  const box=document.querySelector(`[data-pk="${pid}"]`), wrap=box.parentElement;
+  const inp=box.querySelector('input'), chips=box.querySelector('.picked'), sugg=wrap.querySelector('.sugg');
+  const set=new Set(); let sl=[],si=0;
+  const draw=()=>{chips.innerHTML=[...set].map(id=>`<span class="pchip">${opts.chip(opts.byId[id])}<button type="button" data-rm="${id}" aria-label="Fjern">×</button></span>`).join('')};
+  const changed=()=>{draw();onChange()};
+  const hide=()=>{sugg.hidden=true;inp.setAttribute('aria-expanded','false')};
+  const show=()=>{const q=norm(inp.value.trim());if(!q){hide();return}
+    sl=opts.items.filter(x=>!set.has(x.id)&&x.nn.includes(q)).sort((a,b)=>opts.rank(a,b,q)).slice(0,8);si=0;
+    sugg.innerHTML=sl.length?sl.map((x,i)=>`<li role="option" data-id="${x.id}" aria-selected="${i===si}">${opts.row(x)}</li>`).join(''):'<li class="none">Ingen treff</li>';
+    sugg.hidden=false;inp.setAttribute('aria-expanded','true')};
+  const pick=id=>{set.add(id);inp.value='';hide();changed();inp.focus()};
+  inp.oninput=show;
+  inp.onkeydown=e=>{
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){if(sugg.hidden||!sl.length)return;e.preventDefault();si=(si+(e.key==='ArrowDown'?1:-1)+sl.length)%sl.length;
+      sugg.querySelectorAll('li').forEach((li,i)=>li.setAttribute('aria-selected',i===si))}
+    else if(e.key==='Enter'){if(sl.length&&!sugg.hidden){e.preventDefault();pick(sl[si].id)}}
+    else if(e.key==='Escape')hide();
+    else if(e.key==='Backspace'&&!inp.value&&set.size){set.delete([...set].pop());changed()}};
+  sugg.onmousedown=e=>{const li=e.target.closest('li[data-id]');if(!li)return;e.preventDefault();pick(+li.dataset.id)};
+  chips.onclick=e=>{const bt=e.target.closest('[data-rm]');if(!bt)return;set.delete(+bt.dataset.rm);changed()};
+  box.onclick=e=>{if(!e.target.closest('button'))inp.focus()};
+  inp.onblur=()=>setTimeout(hide,120);
+  return {set,clear(){set.clear();inp.value='';hide();draw()},only(id){set.clear();set.add(id);draw()}};
+}
+
+// ---------- player table
+const state={pos:0,team:0,maxp:16,minm:90,q:'',sort:'pts',asc:false};
+const COLS=[
+ {k:'name',l:'Spiller',cls:'l',t:'Spillernavn og klubb'},{k:'pos',l:'Pos',cls:'l',t:'Posisjon: MÅL keeper, FOR forsvar, MID midtbane, ANG angrep'},
+ {k:'price',l:'Pris',t:'Pris i FPL (millioner pund)'},{k:'pts',l:'Poeng',t:'Totale FPL-poeng denne sesongen'},{k:'gw',l:'GW'+D.gw,t:'FPL-poeng i gameweek '+D.gw},
+ {k:'form',l:'Form',t:'Snitt FPL-poeng per kamp de siste 30 dagene'},{k:'xp',l:'xP GW'+D.next.id,t:'Forventede poeng i GW'+D.next.id+' fra vår egen modell: forventede mål og assist justert for motstander og straffeansvar, sjanse for clean sheet, DC-terskel, bonus og forventede minutter'},{k:'ppm',l:'P/£m',t:'Poeng per million: totalpoeng delt på pris'},
+ {k:'sel',l:'Eid %',t:'Andel FPL-lag som eier spilleren'},{k:'min',l:'Min',t:'Spilte minutter'},{k:'g',l:'Mål',t:'Mål'},{k:'a',l:'Ass',t:'Målgivende pasninger (assist)'},
+ {k:'xg',l:'xG',t:'Forventede mål (expected goals)'},{k:'xa',l:'xA',t:'Forventede assist (expected assists)'},{k:'xgi',l:'xGI',t:'Forventet måldeltakelse: xG + xA'},
+ {k:'gi',l:'Målpoeng',t:'Målpoeng: mål + assist'},{k:'rel',l:'Rel. xGI',t:'Relativ prestasjon til xGI: (målpoeng − xGI) / xGI. Positiv = overpresterer. N/A når xGI er under 0,3'},
+ {k:'cs',l:'CS',t:'Clean sheets (kamper uten baklengsmål)'},{k:'dc90',l:'DC/90',t:'Defensive contributions per 90 minutter'},
+ {k:'bonus',l:'Bonus',t:'Bonuspoeng'},{k:'net',l:'Netto overg.',t:'Netto overganger inn minus ut før neste frist'},{k:'fdr',l:'Neste 5',cls:'l',t:'Kampvanskelighet (FDR) for de neste fem kampene. H = hjemme'}];
+const pc=document.getElementById('posChips');
+pc.innerHTML=[[0,'Alle'],[1,'MÅL'],[2,'FOR'],[3,'MID'],[4,'ANG']].map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${v===0}">${l}</button>`).join('');
+pc.onclick=e=>{const b=e.target.closest('button');if(!b)return;state.pos=+b.dataset.v;pc.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderP()};
+const pkPClub=makePicker('pk-pclub',clubOpts,()=>renderP()), pkPPlay=makePicker('pk-pplay',playerOpts,()=>renderP());
+const maxp=document.getElementById('maxp'),minm=document.getElementById('minm');
+maxp.oninput=()=>{state.maxp=maxp.value/10;renderP()};
+minm.oninput=()=>{state.minm=+minm.value;renderP()};
+document.getElementById('preset').onclick=()=>{state.pos=0;pc.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==='0'));
+  state.maxp=16;maxp.value=160;state.minm=90;minm.value=90;pkPClub.clear();pkPPlay.clear();renderP()};
+const pt=document.getElementById('ptable');
+pt.querySelector('thead').innerHTML='<tr>'+COLS.map(c=>`<th class="${c.cls||''}" data-k="${c.k}" title="${c.t}">${c.l}</th>`).join('')+'</tr>';
+pt.querySelector('thead').onclick=e=>{const th=e.target.closest('th');if(!th)return;const k=th.dataset.k;
+  if(state.sort===k)state.asc=!state.asc;else{state.sort=k;state.asc=(k==='name'||k==='fdr')}renderP()};
+function sortVal(p,k){return k==='fdr'?fdrAvg(p.team):k==='name'?p.name.toLowerCase():k==='rel'?(p.rel==null?-1e9:p.rel):p[k]}
+function renderP(){
+  document.getElementById('maxpv').textContent='£'+state.maxp.toFixed(1)+'m';
+  document.getElementById('minmv').textContent=state.minm;
+  const rows=P.filter(p=>(!state.pos||p.pos===state.pos)&&(!pkPClub.set.size||pkPClub.set.has(p.team))&&(!pkPPlay.set.size||pkPPlay.set.has(p.id))&&p.price<=state.maxp&&(pkPPlay.set.size||p.min>=state.minm));
+  rows.sort((a,b)=>{const x=sortVal(a,state.sort),y=sortVal(b,state.sort);return (x<y?-1:x>y?1:0)*(state.asc?1:-1)});
+  pt.querySelectorAll('th').forEach(th=>{th.classList.toggle('on',th.dataset.k===state.sort);th.classList.toggle('asc',state.asc)});
+  pt.querySelector('tbody').innerHTML=rows.length?rows.map(p=>`<tr>
+   <td class="name club" style="${clubStyle(p.team)}"><div class="nm"><div><span class="st ${p.status}" title="${stTitle[p.status]}${p.chance!=null?' – '+p.chance+'% sjanse':''}"></span>${esc(p.name)}<small>${TEAMS[p.team].name}</small></div>${badge(p.team)}</div></td>
+   <td class="l"><span class="pos">${POS[p.pos]}</span></td><td>£${p.price.toFixed(1)}</td><td class="num-strong">${p.pts}</td><td>${p.gw}</td>
+   <td>${fmt(p.form)}</td><td class="num-strong" title="${xpTip(p)}">${fmt(p.xp)}</td><td>${fmt(p.ppm)}</td><td>${fmt(p.sel)}</td><td>${p.min}</td><td>${p.g}</td><td>${p.a}</td>
+   <td>${fmt(p.xg,2)}</td><td>${fmt(p.xa,2)}</td><td>${fmt(p.xgi,2)}</td><td class="num-strong">${p.gi}</td><td>${relHtml(p.rel)}</td><td>${p.cs}</td><td>${fmt(p.dc90)}</td><td>${p.bonus}</td>
+   <td style="color:var(${p.net>0?'--good':'--bad'})">${p.net>0?'+':''}${p.net.toLocaleString('nb-NO')}</td><td class="l">${fdrHtml(p.team)}</td></tr>`).join('')
+   :`<tr><td colspan="${COLS.length}" class="empty">Ingen spillere passer filtrene. Prøv å senke minutt-kravet eller øke makspris.</td></tr>`;
+  document.getElementById('pcount').textContent=`${rows.length} spillere vist`;
+}
+renderP();
+
+// ---------- insights
+const thr=p=>p.pos===2?10:12;
+const DCT=D.dct||{};
+P.forEach(p=>{const t=DCT[p.id];p.dch=t?t[0]:0;p.dca=t?t[1]:0;});
+const SECS=[
+ {h:'Forventede poeng GW'+D.next.id,d:'Egen modell der de siste kampene teller mest. Basert på forventede mål og assist, straffeansvar, motstanderens styrke, hjemme/borte, sjanse for clean sheet, DC-terskel, bonus og forventede minutter. Hold musen over tallet for å se hva poengene består av.',panels:[
+  {id:'xp',t:'Forventede poeng',d:'Modellens anslag for GW'+D.next.id+'.',v:p=>p.xp,f:v=>v.toFixed(1),vl:'xP',pool:p=>p.min>=90,tip:true},
+  {id:'xpm',t:'Forventede poeng per million',d:'Forventede poeng delt på pris.',v:p=>p.xpm,f:v=>v.toFixed(2),vl:'xP/£m',pool:p=>p.min>=90},
+  {id:'xpd',t:'Differensialer',d:'Høyest forventede poeng blant spillere med under 5 % eierskap.',v:p=>p.xp,f:v=>v.toFixed(1),vl:'xP',pool:p=>p.min>=90&&p.sel<5,tip:true}]},
+ {h:'Stats per totale poeng',d:'Poeng er FPL-poeng totalt denne sesongen.',panels:[
+  {id:'pts',t:'Mest poeng',d:'Totale FPL-poeng.',v:p=>p.pts,f:v=>v,vl:'Poeng',pool:p=>true},
+  {id:'ppm',t:'Mest poeng per million',d:'Totalpoeng delt på pris. Minst 180 minutter.',v:p=>p.ppm,f:v=>v.toFixed(1),vl:'P/£m',pool:p=>p.min>=180},
+  {id:'p90',t:'Mest poeng per 90',d:'FPL-poeng per 90 spilte minutter. Minst 180 minutter.',v:p=>p.p90,f:v=>v.toFixed(1),vl:'P/90',pool:p=>p.min>=180}]},
+ {h:'Forventede målpoeng og involveringer',d:'Målpoeng er mål + assist. xGI er forventede mål + forventede assist.',panels:[
+  {id:'gi',t:'Målpoeng',d:'Mål + assist.',v:p=>p.gi,f:v=>v,vl:'Målp.',pool:p=>true},
+  {id:'xgi',t:'Forventet målpoeng (xGI)',d:'xG + xA. Viser hvem som får sjansene.',v:p=>p.xgi,f:v=>v.toFixed(2),vl:'xGI',pool:p=>true},
+  {id:'rel',t:'Relativ prestasjon til xGI',d:'(Målpoeng − xGI) / xGI. Positiv = overpresterer. Kun spillere med xGI på minst 0,3.',v:p=>p.rel,f:v=>(v>0?'+':'')+Math.round(v)+' %',vl:'Rel.',pool:p=>p.rel!=null,col:v=>v>=0?'--good':'--bad'}]},
+ {h:'Defensive contributions',d:'Forsvarere får 2 poeng i en kamp med minst 10 CBIT (klareringer, blokkeringer, avskjæringer, taklinger). Midtbanespillere og spisser trenger 12 CBIRT (det samme pluss ballvinninger). Keepere kan ikke få DC-poeng.',panels:[
+  {id:'dc',t:'DC totalt',d:'Sum defensive contributions denne sesongen.',v:p=>p.dc,f:v=>v,vl:'DC',pool:p=>p.pos>1},
+  {id:'dc90',t:'DC per 90',d:'Defensive contributions per 90 minutter. Minst 180 minutter.',v:p=>p.dc90,f:v=>v.toFixed(1),vl:'DC/90',pool:p=>p.pos>1&&p.min>=180},
+  {id:'dch',t:'Oppnådd DC-terskel',d:'Antall kamper der spilleren nådde terskelen (10 for forsvarere, 12 for andre) av kamper spilt.',v:p=>p.dch+p.dch/(p.dca||1)/10,f:(v,p)=>`${p.dch} av ${p.dca}`,vl:'Kamper',pool:p=>p.pos>1&&p.dca>0}]},
+ {h:'Overganger og form',d:'Markedet før neste frist.',panels:[
+  {id:'form',t:'Form',d:'Snitt FPL-poeng per kamp de siste 30 dagene.',v:p=>p.form,f:v=>v.toFixed(1),vl:'Form',pool:p=>p.min>=90},
+  {id:'diff',t:'Differensialer i form',d:'Tilgjengelige spillere med under 5 % eierskap, sortert på form.',v:p=>p.form,f:v=>v.toFixed(1),vl:'Form',pool:p=>p.sel<5&&p.status==='a'&&p.min>=180},
+  {id:'net',t:'Netto overganger',d:'Inn minus ut før GW'+D.next.id+'. Topp = mest kjøpt, bunn = mest solgt.',v:p=>p.net,f:v=>(v>0?'+':'')+v.toLocaleString('nb-NO'),vl:'Netto',pool:p=>true,col:v=>v>=0?'--good':'--bad'}]}];
+const istate={pos:0,dir:{},teams:new Set()};
+const itc=document.getElementById('iteams');
+itc.innerHTML=D.teams.map(t=>`<button type="button" class="tchip" data-t="${t[0]}" aria-pressed="false" style="${clubStyle(t[0])}" title="${esc(t[1])}">${t[2]}</button>`).join('');
+itc.onclick=e=>{const bt=e.target.closest('.tchip');if(!bt)return;const t=+bt.dataset.t;istate.teams.has(t)?istate.teams.delete(t):istate.teams.add(t);bt.setAttribute('aria-pressed',istate.teams.has(t));renderI()};
+const pkIPlay=makePicker('pk-iplay',playerOpts,()=>renderI());
+document.getElementById('ireset').onclick=()=>{istate.pos=0;istate.teams.clear();pkIPlay.clear();
+  itc.querySelectorAll('.tchip').forEach(x=>x.setAttribute('aria-pressed','false'));
+  ipc.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x.dataset.v==='0'));renderI()};
+const ipc=document.getElementById('iposChips');
+ipc.innerHTML=[[0,'Alle'],[1,'MÅL'],[2,'FOR'],[3,'MID'],[4,'ANG']].map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${v===0}">${l}</button>`).join('');
+ipc.onclick=e=>{const bt=e.target.closest('button');if(!bt)return;istate.pos=+bt.dataset.v;ipc.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===bt));renderI()};
+function panelHtml(pn){
+  const asc=!!istate.dir[pn.id];
+  const rows=P.filter(p=>(!istate.pos||p.pos===istate.pos)&&(!istate.teams.size||istate.teams.has(p.team))&&(!pkIPlay.set.size||pkIPlay.set.has(p.id))&&pn.pool(p)).sort((a,b)=>((pn.v(b)-pn.v(a))||(b.pts-a.pts))*(asc?-1:1));
+  const body=rows.length?rows.map((p,i)=>{const v=pn.v(p);return `<tr><td class="rk">${i+1}</td><td class="l"><div class="nm"><span>${esc(p.name)}<small>${POS[p.pos]} · £${p.price.toFixed(1)} · ${fmt(p.sel)} % eid</small></span>${badge(p.team)}</div></td><td class="val"${pn.col?` style="color:var(${pn.col(v)})"`:''}${pn.tip?` title="${xpTip(p)}"`:''}>${pn.f(v,p)}</td></tr>`}).join('')
+    :`<tr><td colspan="3" class="empty">${istate.pos===1&&pn.id.startsWith('dc')?'Keepere kan ikke få DC-poeng.':'Ingen spillere passer.'}</td></tr>`;
+  return `<div class="panel"><div class="phead"><h3>${pn.t}</h3><button type="button" class="dirbtn" data-p="${pn.id}" title="Bytt mellom høyeste og laveste verdier">${asc?'Bunn ↑':'Topp ↓'}</button></div><p>${pn.d}</p>
+   <div class="scroll"><table class="mini"><thead><tr><th>#</th><th class="l">Spiller</th><th>${pn.vl}</th></tr></thead><tbody>${body}</tbody></table></div><div class="cnt">${rows.length} spillere · rull for flere</div></div>`;
+}
+const insEl=document.getElementById('insights');
+function renderI(){
+  const open=[...insEl.querySelectorAll('details')].map(d=>d.open);
+  insEl.innerHTML=SECS.map((s,i)=>`<details class="isec" ${open.length&&!open[i]?'':'open'}><summary><h2>${s.h}</h2><span>${s.d}</span></summary><div class="grid3">${s.panels.map(panelHtml).join('')}</div></details>`).join('');
+}
+insEl.onclick=e=>{const bt=e.target.closest('.dirbtn');if(!bt)return;istate.dir[bt.dataset.p]=!istate.dir[bt.dataset.p];renderI()};
+renderI();
+
+// ---------- clubs
+const CL=D.teams.map(t=>{const ps=P.filter(p=>p.team===t[0]);const s=k=>ps.reduce((a,p)=>a+p[k],0);
+  const gk=ps.filter(p=>p.pos===1).sort((a,b)=>b.min-a.min)[0];
+  const best=[...ps].sort((a,b)=>b.pts-a.pts)[0];
+  const g=s('g'),a=s('a'),xgi=s('xg')+s('xa');
+  return {id:t[0],name:t[1],pts:s('pts'),g,a,gi:g+a,xg:s('xg'),xa:s('xa'),xgi,rel:xgi>=0.3?(g+a-xgi)/xgi*100:null,cs:gk?gk.cs:0,gc:gk?gk.gc:0,xgc:gk?gk.xgc:0,dc90:s('dc')/Math.max(1,Math.round(Math.max(...ps.map(p=>p.min))/90)),best,fdr:fdrAvg(t[0])}});
+const CC=[{k:'name',l:'Klubb',cls:'l',t:'Klubbnavn. Klikk for å se spillerne'},{k:'pts',l:'FPL-poeng',t:'Sum FPL-poeng for klubbens spillere'},
+ {k:'g',l:'Mål',t:'Mål'},{k:'a',l:'Ass',t:'Målgivende pasninger (assist)'},{k:'xg',l:'xG',t:'Forventede mål (expected goals)'},{k:'xa',l:'xA',t:'Forventede assist (expected assists)'},
+ {k:'xgi',l:'xGI',t:'Forventet måldeltakelse: xG + xA'},{k:'gi',l:'Målpoeng',t:'Målpoeng: mål + assist'},{k:'rel',l:'Rel. xGI',t:'Relativ prestasjon til xGI: (målpoeng − xGI) / xGI. Positiv = overpresterer. N/A når xGI er under 0,3'},
+ {k:'gc',l:'Innsluppet',t:'Baklengsmål'},{k:'xgc',l:'xGC',t:'Forventede baklengsmål (expected goals conceded)'},{k:'cs',l:'CS',t:'Clean sheets (kamper uten baklengsmål)'},
+ {k:'dc90',l:'DC/90',t:'Lagets defensive contributions per kamp (90 minutter)'},{k:'best',l:'Toppscorer (FPL)',cls:'l',t:'Klubbens spiller med flest FPL-poeng'},
+ {k:'fdr',l:'Snitt FDR',t:'Snitt kampvanskelighet neste fem kamper (1 lett – 5 svært vanskelig)'},{k:'nx',l:'Neste 5',cls:'l',t:'Kampvanskelighet (FDR) for de neste fem kampene. H = hjemme'}];
+const cs={sort:'pts',asc:false};const pkClub=makePicker('pk-club',clubOpts,()=>renderC());const ct=document.getElementById('ctable');
+ct.querySelector('thead').innerHTML='<tr>'+CC.map(c=>`<th class="${c.cls||''}" data-k="${c.k}" title="${c.t}">${c.l}</th>`).join('')+'</tr>';
+ct.querySelector('thead').onclick=e=>{const th=e.target.closest('th');if(!th||th.dataset.k==='nx')return;const k=th.dataset.k;
+  if(cs.sort===k)cs.asc=!cs.asc;else{cs.sort=k;cs.asc=['name','fdr','gc','xgc'].includes(k)}renderC()};
+function renderC(){const v=c=>cs.sort==='best'?c.best.pts:cs.sort==='name'?c.name:c[cs.sort];
+  const rows=CL.filter(c=>!pkClub.set.size||pkClub.set.has(c.id)).sort((a,b)=>{const x=v(a),y=v(b);return (x<y?-1:x>y?1:0)*(cs.asc?1:-1)});
+  ct.querySelectorAll('th').forEach(th=>{th.classList.toggle('on',th.dataset.k===cs.sort);th.classList.toggle('asc',cs.asc)});
+  ct.querySelector('tbody').innerHTML=rows.map(c=>`<tr><td class="l club" style="${clubStyle(c.id)}"><div class="nm"><button class="linkbtn" data-team="${c.id}">${esc(c.name)}</button>${badge(c.id)}</div></td>
+   <td class="num-strong">${c.pts}</td><td>${c.g}</td><td>${c.a}</td><td>${fmt(c.xg)}</td><td>${fmt(c.xa)}</td><td>${fmt(c.xgi)}</td><td class="num-strong">${c.gi}</td><td>${relHtml(c.rel)}</td><td>${c.gc}</td><td>${fmt(c.xgc)}</td><td>${c.cs}</td><td>${fmt(c.dc90)}</td>
+   <td class="l">${esc(c.best.name)} <span style="color:var(--muted)">${c.best.pts}</span></td><td>${fmt(c.fdr,2)}</td><td class="l">${fdrHtml(c.id)}</td></tr>`).join('');}
+ct.onclick=e=>{const b=e.target.closest('[data-team]');if(!b)return;pkPClub.only(+b.dataset.team);pkPPlay.clear();state.minm=0;minm.value=0;renderP();showTab('spillere');window.scrollTo(0,0)};
+renderC();
+
+// ---------- team builder (squad of 15: first eleven + bench)
+(function(){
+  const LIM={1:[1,1],2:[3,5],3:[2,5],4:[1,3]};   // startellever min/max
+  const SQ={1:2,2:5,3:5,4:3};                     // tropp totalt
+  const PN={1:'keeper',2:'forsvarer',3:'midtbanespiller',4:'spiss'};
+  const PNP={1:'keepere',2:'forsvarere',3:'midtbanespillere',4:'spisser'};
+  const KEY='fpl-lag-v2';
+  let xi=[],bench=[null,null,null,null],cap=null,vice=null,budget=100,swapSel=null;
+  try{const s=JSON.parse(localStorage.getItem(KEY)||'null');
+    if(s){xi=s.xi.filter(id=>PBYID[id]);bench=(s.bench||[]).map(id=>PBYID[id]?id:null);while(bench.length<4)bench.push(null);cap=PBYID[s.cap]?s.cap:null;vice=PBYID[s.vice]?s.vice:null;budget=s.budget||100}
+    else{const o=JSON.parse(localStorage.getItem('fpl-lag-v1')||'null');if(o){xi=o.team.filter(id=>PBYID[id]);cap=o.cap;vice=o.vice}}}catch(e){}
+  const save=()=>{try{localStorage.setItem(KEY,JSON.stringify({xi,bench,cap,vice,budget}))}catch(e){}};
+  const bIn=document.getElementById('lbudget');bIn.value=budget;
+  bIn.onchange=()=>{budget=Math.max(50,Math.min(150,+bIn.value||100));bIn.value=budget;render()};
+  const msg=document.getElementById('lmsg');
+  const squad=()=>xi.concat(bench.filter(x=>x!=null));
+  const cnt=(arr,pos)=>arr.filter(id=>PBYID[id].pos===pos).length;
+  const cost=arr=>arr.reduce((s,id)=>s+PBYID[id].price,0);
+  // where: 'xi' | 'b0' (benk-keeper) | 'b1'..'b3' (benk utespiller)
+  function canAdd(p,without,where){
+    const sq=squad().filter(id=>id!==without), x=xi.filter(id=>id!==without);
+    if(sq.includes(p.id))return 'Allerede i troppen';
+    if(cnt(sq,p.pos)>=SQ[p.pos])return `Troppen har allerede ${SQ[p.pos]} ${PNP[p.pos]}`;
+    if(sq.filter(id=>PBYID[id].team===p.team).length>=3)return `Maks 3 fra ${TEAMS[p.team].name}`;
+    if(where==='xi'){
+      if(x.length>=11)return 'Startelleveren er full';
+      if(cnt(x,p.pos)>=LIM[p.pos][1])return `Maks ${LIM[p.pos][1]} ${PNP[p.pos]} i startelleveren`;
+      const left=11-x.length-1;let need=0;[1,2,3,4].forEach(k=>{need+=Math.max(0,LIM[k][0]-cnt(x,k)-(k===p.pos?1:0))});
+      if(need>left)return 'Formasjonen må ha 1 keeper, minst 3 forsvarere, 2 midtbanespillere og 1 spiss';
+    }else if(where==='b0'){if(p.pos!==1)return 'Benkens første plass er for keeper'}
+    else if(p.pos===1)return 'Kun én keeper på benken';
+    return null;
+  }
+  function firstFree(p){ // finn ledig plass for en spiller fra søkefeltet
+    if(!canAdd(p,null,'xi'))return 'xi';
+    if(p.pos===1&&bench[0]==null&&!canAdd(p,null,'b0'))return 'b0';
+    for(let i=1;i<4;i++)if(bench[i]==null&&!canAdd(p,null,'b'+i))return 'b'+i;
+    return null;
+  }
+  function place(id,where,replace){
+    const p=PBYID[id];const w=canAdd(p,replace,where);if(w){msg.textContent=w+'.';return false}
+    if(where==='xi'){if(replace!=null&&xi.includes(replace))xi[xi.indexOf(replace)]=id;else xi.push(id)}
+    else bench[+where[1]]=id;
+    if(replace!=null){if(cap===replace)cap=id;if(vice===replace)vice=id}
+    if(cap==null&&where==='xi')cap=id;
+    msg.textContent='';render();return true;
+  }
+  const opts={...playerOpts,items:P,row:p=>{const wh=firstFree(p);return `<span${wh?'':' style="opacity:.45"'}>${esc(p.name)}<small>${POS[p.pos]} · £${p.price.toFixed(1)} · xP ${fmt(p.xp)}${wh?(wh==='xi'?'':' · til benken'):' · ikke plass'}</small></span>${badge(p.team)}`}};
+  const pk=makePicker('pk-team',opts,()=>{const id=[...pk.set][0];pk.clear();if(id==null)return;const wh=firstFree(PBYID[id]);
+    if(!wh){msg.textContent=canAdd(PBYID[id],null,'xi')+'.';return}place(id,wh)});
+
+  // ---- velg-spiller-vindu
+  const modal=document.getElementById('lmodal'),mt=document.getElementById('mtable'),mq=document.getElementById('mq'),mmax=document.getElementById('mmax'),mpos=document.getElementById('mpos');
+  const M={pos:[1],cur:1,where:'xi',replace:null,sort:'xp',asc:false};
+  const MC=[{k:'name',l:'Spiller',cls:'l'},{k:'price',l:'Pris'},{k:'xp',l:'xP GW'+D.next.id,t:'Forventede poeng neste runde'},{k:'pts',l:'Poeng'},{k:'form',l:'Form'},{k:'sel',l:'Eid %'},{k:'fdr',l:'Neste 5',cls:'l'}];
+  mt.querySelector('thead').innerHTML='<tr>'+MC.map(c=>`<th class="${c.cls||''}" data-k="${c.k}"${c.t?` title="${c.t}"`:''}>${c.l}</th>`).join('')+'</tr>';
+  mt.querySelector('thead').onclick=e=>{const th=e.target.closest('th');if(!th)return;const k=th.dataset.k;if(M.sort===k)M.asc=!M.asc;else{M.sort=k;M.asc=(k==='name'||k==='fdr'||k==='price')}drawM()};
+  mpos.onclick=e=>{const bt=e.target.closest('button');if(!bt)return;M.cur=+bt.dataset.v;drawM()};
+  function openM(posList,where,replace){
+    M.pos=posList;M.cur=replace!=null?PBYID[replace].pos:posList[0];M.where=where;M.replace=replace;mq.value='';
+    const left=budget-cost(squad().filter(id=>id!==replace));
+    mmax.value=Math.max(40,Math.min(160,Math.floor(left*10/5)*5));
+    document.getElementById('mtitle').textContent=replace!=null?`Bytt ut ${PBYID[replace].name}`:(where==='xi'?`Velg ${PN[posList[0]]}`:'Velg spiller til benken');
+    modal.hidden=false;drawM();setTimeout(()=>mq.focus(),0)}
+  const closeM=()=>{modal.hidden=true};
+  function drawM(){
+    mpos.hidden=M.pos.length<2;
+    mpos.innerHTML=M.pos.map(v=>`<button type="button" data-v="${v}" aria-pressed="${v===M.cur}">${POS[v]}</button>`).join('');
+    document.getElementById('mmaxv').textContent='£'+(mmax.value/10).toFixed(1)+'m';
+    const q=norm(mq.value.trim()),mx=mmax.value/10;
+    const sv=p=>M.sort==='fdr'?fdrAvg(p.team):M.sort==='name'?p.nn:p[M.sort];
+    const rows=P.filter(p=>p.pos===M.cur&&p.price<=mx+1e-9&&(!q||p.nn.includes(q)||norm(TEAMS[p.team].name+' '+TEAMS[p.team].short).includes(q)))
+      .sort((a,b)=>{const x=sv(a),y=sv(b);return (x<y?-1:x>y?1:0)*(M.asc?1:-1)});
+    mt.querySelectorAll('th').forEach(th=>{th.classList.toggle('on',th.dataset.k===M.sort);th.classList.toggle('asc',M.asc)});
+    mt.querySelector('tbody').innerHTML=rows.map(p=>{const w=canAdd(p,M.replace,M.where);
+      return `<tr class="${w?'off':'pickable'}" data-id="${p.id}"${w?` title="${w}"`:''}><td class="l"><div class="nm"><span><span class="st ${p.status}"></span>${esc(p.name)}<small>${w?w:TEAMS[p.team].name}</small></span>${badge(p.team)}</div></td>
+        <td>£${p.price.toFixed(1)}</td><td class="num-strong">${fmt(p.xp)}</td><td>${p.pts}</td><td>${fmt(p.form)}</td><td>${fmt(p.sel)}</td><td class="l">${fdrHtml(p.team)}</td></tr>`}).join('')
+      ||`<tr><td colspan="7" class="empty">Ingen spillere passer søket. Prøv å øke maks pris.</td></tr>`;
+    document.getElementById('mcnt').textContent=`${rows.length} spillere · maks pris er satt til det du har igjen av budsjettet · klikk en rad for å velge`;
+  }
+  mq.oninput=drawM;mmax.oninput=drawM;
+  mt.querySelector('tbody').onclick=e=>{const tr=e.target.closest('tr.pickable');if(!tr)return;if(place(+tr.dataset.id,M.where,M.replace))closeM()};
+  document.getElementById('mclose').onclick=closeM;
+  modal.onclick=e=>{if(e.target===modal)closeM()};
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeM()});
+
+  // ---- bytte mellom benk og startellever
+  function validXI(arr){return [1,2,3,4].every(k=>{const c=cnt(arr,k);return c>=LIM[k][0]&&c<=LIM[k][1]})}
+  function trySwap(a,b){
+    const ia=xi.indexOf(a),ib=xi.indexOf(b),ja=bench.indexOf(a),jb=bench.indexOf(b);
+    if((ia>=0)===(ib>=0)){ // samme gruppe: bare bytt rekkefølge på benken
+      if(ja>=1&&jb>=1){bench[ja]=b;bench[jb]=a;return null}
+      return 'Velg én spiller i startelleveren og én på benken';}
+    const s=ia>=0?a:b, bn=ia>=0?b:a, j=bench.indexOf(bn);
+    if((PBYID[s].pos===1)!==(PBYID[bn].pos===1))return 'Keeper kan bare byttes med keeper';
+    const nx=xi.map(id=>id===s?bn:id);
+    if(nx.length===11&&!validXI(nx))return 'Byttet gir ugyldig formasjon';
+    xi=nx;bench[j]=s;if(cap===s)cap=bn;if(vice===s)vice=bn;return null;
+  }
+
+  // ---- hurtigvalg: lokal søk-optimering av 15-mannstropp innenfor budsjett
+  const avail=p=>!['i','s','u','n'].includes(p.status)&&(p.chance==null||p.chance>=50);
+  function bestXI(ids,sc){
+    const by=k=>ids.filter(id=>PBYID[id].pos===k).sort((a,b)=>sc(PBYID[b])-sc(PBYID[a]));
+    const g=by(1),d=by(2),m=by(3),f=by(4);
+    const x=[g[0],...d.slice(0,3),...m.slice(0,2),f[0]];
+    const rest=[...d.slice(3),...m.slice(2),...f.slice(1)].sort((a,b)=>sc(PBYID[b])-sc(PBYID[a])).slice(0,4);
+    return x.concat(rest).filter(v=>v!=null);
+  }
+  function optimise(sc,useCap){
+    const B=budget;
+    const pools={};[1,2,3,4].forEach(k=>{const ps=P.filter(p=>p.pos===k&&avail(p));
+      const top=[...ps].sort((a,b)=>sc(b)-sc(a)).slice(0,45),cheap=[...ps].sort((a,b)=>a.price-b.price||sc(b)-sc(a)).slice(0,10);
+      pools[k]=[...new Set(top.concat(cheap))]});
+    const minPrice={};[1,2,3,4].forEach(k=>minPrice[k]=Math.min(...pools[k].map(p=>p.price)));
+    const obj=ids=>{const x=bestXI(ids,sc);const xs=x.reduce((s,id)=>s+sc(PBYID[id]),0);
+      const bs=ids.reduce((s,id)=>s+sc(PBYID[id]),0)-xs;const capB=useCap?Math.max(...x.map(id=>PBYID[id].xp)):0;
+      const gk=x.find(id=>PBYID[id].pos===1);const noGk=gk!=null&&PBYID[gk].min===0?50:0; // unngå keeper uten spilletid i startelleveren
+      return xs+capB+0.1*bs-1000*Math.max(0,cost(ids)-B)-noGk};
+    // grådig start: beste score, men behold råd til resten av troppen
+    let sq=[];const need={...SQ};
+    const order=[...pools[1],...pools[2],...pools[3],...pools[4]].sort((a,b)=>sc(b)-sc(a));
+    const reserve=()=>Object.entries(need).reduce((s,[k,n])=>s+n*minPrice[k],0);
+    for(const p of order){if(!need[p.pos])continue;if(sq.filter(id=>PBYID[id].team===p.team).length>=3)continue;
+      need[p.pos]--;const spent=cost(sq)+p.price;if(spent+reserve()>B+1e-9){need[p.pos]++;continue}sq.push(p.id)}
+    [1,2,3,4].forEach(k=>{for(const p of [...pools[k]].sort((a,b)=>a.price-b.price)){if(cnt(sq,k)>=SQ[k])break;if(!sq.includes(p.id)&&sq.filter(id=>PBYID[id].team===p.team).length<3)sq.push(p.id)}});
+    // forbedre med enkeltbytter
+    const clubOk=(arr,p)=>arr.filter(id=>PBYID[id].team===p.team).length<3;
+    const short={};[1,2,3,4].forEach(k=>short[k]=[...pools[k]].sort((a,b)=>sc(b)-sc(a)).slice(0,14).concat([...pools[k]].sort((a,b)=>a.price-b.price).slice(0,6)));
+    let cur=obj(sq);
+    for(let it=0;it<120;it++){let best=null,bv=cur;
+      for(let i=0;i<sq.length;i++){const out=PBYID[sq[i]];const rest=sq.filter((_,j)=>j!==i);
+        for(const p of pools[out.pos]){if(rest.includes(p.id)||!clubOk(rest,p))continue;
+          const cand=rest.concat(p.id);const v=obj(cand);if(v>bv+1e-6){bv=v;best=cand}}}
+      if(!best){ // ingen enkeltbytte hjelper: prøv to bytter samtidig (frigjør penger ett sted, bruk dem et annet)
+        for(let i=0;i<sq.length&&!best;i++)for(let j=i+1;j<sq.length;j++){
+          const a=PBYID[sq[i]],c=PBYID[sq[j]];const rest=sq.filter((_,k)=>k!==i&&k!==j);
+          for(const p of short[a.pos]){if(rest.includes(p.id)||!clubOk(rest,p))continue;const r2=rest.concat(p.id);
+            for(const q of short[c.pos]){if(r2.includes(q.id)||!clubOk(r2,q))continue;const cand=r2.concat(q.id);const v=obj(cand);if(v>bv+1e-6){bv=v;best=cand}}}}}
+      if(!best)break;sq=best;cur=bv}
+    const x=bestXI(sq,p=>p.xp+(p.min>0?0:-5));const bn=sq.filter(id=>!x.includes(id));
+    const bgk=bn.find(id=>PBYID[id].pos===1);const bout=bn.filter(id=>PBYID[id].pos!==1).sort((a,b)=>PBYID[b].xp-PBYID[a].xp);
+    xi=x;bench=[bgk??null,...bout,null,null,null].slice(0,4);
+    const byXp=[...x].sort((a,b)=>PBYID[b].xp-PBYID[a].xp);cap=byXp[0];vice=byXp[1];
+  }
+  const relOf=p=>p.rel==null?0:p.rel;
+  const QUICK={
+    under:{s:p=>p.sel*(p.rel!=null&&p.rel<0?1+Math.min(1,-p.rel/100):0.15),t:'Underpresterende poppis: populære spillere som har levert under xGI. Keepere og spillere uten nok xGI fylles inn etter eierandel.'},
+    over:{s:p=>p.sel*(p.rel!=null&&p.rel>0?1+Math.min(1,p.rel/100):0.15),t:'Overpresterende poppis: populære spillere som har levert over xGI. Keepere og spillere uten nok xGI fylles inn etter eierandel.'},
+    xp:{s:p=>p.xp,cap:true,t:'Høyest forventet poengsum: troppen som gir mest forventede poeng i startelleveren neste runde, med kaptein.'},
+    own:{s:p=>p.sel,t:'Mest eid: troppen med høyest samlet eierandel.'},
+    form:{s:p=>p.min>0?p.form:0,t:'Formspillere: troppen med høyest form, altså snitt FPL-poeng per kamp de siste 30 dagene.'},
+    fdr:{s:p=>p.xp*Math.pow(3/fdrAvg(p.team),1.5),t:'Lett kampprogram: forventede poeng vektet mot lag med lettest kampprogram (lavest snitt-FDR) de neste 5 rundene.'}};
+  document.getElementById('lquick').onclick=e=>{const bt=e.target.closest('[data-q]');if(!bt)return;const q=QUICK[bt.dataset.q];
+    optimise(q.s,q.cap);msg.textContent=q.t+` Startelleveren er satt opp etter forventede poeng. Budsjett £${budget.toFixed(1)}m, maks 3 per klubb, kun spillere som ventes å være tilgjengelige.`;render()};
+
+  // ---- tegning
+  const pitch=document.getElementById('pitch'), sum=document.getElementById('lsum');
+  function card(p,where){
+    const sel=swapSel===p.id;
+    return `<div class="pcard${sel?' swapsel':''}${where!=='xi'?' bcard':''}" data-id="${p.id}" data-where="${where}" title="Klikk for å bytte ut">
+      <button type="button" class="rm" data-act="rm" aria-label="Fjern ${esc(p.name)}">×</button>
+      <button type="button" class="sw" data-act="sw" aria-pressed="${sel}" title="Bytt mellom benk og startellever: trykk her, og deretter på spilleren du vil bytte med">⇅</button>
+      ${p.status!=='a'?`<span class="flag" title="${stTitle[p.status]}${p.chance!=null?' – '+p.chance+'% sjanse':''}">!</span>`:''}
+      ${badge(p.team)}
+      <b>${esc(p.name)}</b>
+      <span class="xp">${fmt(p.xp*(p.id===cap&&where==='xi'?2:1))}<small> xP${p.id===cap&&where==='xi'?'×2':''}</small></span>
+      <span class="meta2">£${p.price.toFixed(1)} ${next5(p.team).slice(0,1).map(f=>`<span class="opp d${f.d}" title="GW${f.gw}: ${TEAMS[f.opp].name} ${f.home?'hjemme':'borte'} (FDR ${f.d})">${TEAMS[f.opp].short} (${f.home?'H':'B'})</span>`).join('')||'<span class="opp d3">Ingen kamp</span>'}</span>
+      <span class="dots" aria-label="Kampvanskelighet neste 5 runder">${next5(p.team).map(f=>`<i class="d${f.d}" title="GW${f.gw}: ${TEAMS[f.opp].short} ${f.home?'(H)':'(B)'} · FDR ${f.d}"></i>`).join('')}</span>
+      ${where==='xi'?`<div class="cv"><button type="button" data-act="c" aria-pressed="${p.id===cap}" title="Kaptein (dobbel poeng)">C</button><button type="button" data-act="v" aria-pressed="${p.id===vice}" title="Visekaptein">V</button></div>`:''}
+    </div>`;
+  }
+  const slot=(attrs,txt,cls)=>`<button type="button" class="pcard ghost ${cls||''}" ${attrs}><span class="plus">+</span>${txt}</button>`;
+  function render(){
+    const sq=squad();document.getElementById('lcount').textContent=sq.length;
+    const ps=xi.map(id=>PBYID[id]);
+    const rows=[1,2,3,4].map(pos=>{const row=ps.filter(p=>p.pos===pos);const c=row.length;
+      const need=Math.max(0,LIM[pos][0]-c);
+      const ghosts=Array.from({length:need},()=>slot(`data-add="${pos}"`,POS[pos])).join('');
+      const extra=(!need&&c<LIM[pos][1]&&xi.length<11&&!canAdd({id:-1,pos,team:-1},null,'xi'))?slot(`data-add="${pos}"`,POS[pos],'opt'):'';
+      return `<div class="prow">${row.map(p=>card(p,'xi')).join('')}${ghosts}${extra}</div>`}).join('');
+    const benchRow=bench.map((id,i)=>id!=null?card(PBYID[id],'b'+i):slot(`data-bench="${i}"`,i===0?'MÅL':'Benk '+i,'bslot')).join('');
+    pitch.innerHTML=`<div class="field"><i class="mk box"></i><i class="mk six"></i><i class="mk arc"></i><i class="mk spot"></i><i class="mk circle"></i><i class="mk cspot"></i>${rows}</div><div class="bench"><span class="blabel">Benk</span><div class="prow">${benchRow}</div></div>`;
+    const S=(arr,k)=>arr.reduce((s,id)=>s+PBYID[id][k],0);
+    const capP=xi.includes(cap)?PBYID[cap]:null, xp=S(xi,'xp')+(capP?capP.xp:0);
+    const bx=bench.filter(x=>x!=null), val=cost(sq), left=budget-val, pts=S(xi,'pts'), gw=Math.max(1,D.gw);
+    const own=xi.length?S(xi,'sel')/xi.length:0, fdr=xi.length?ps.reduce((s,p)=>s+fdrAvg(p.team),0)/xi.length:0;
+    const risk=sq.map(id=>PBYID[id]).filter(p=>p.status!=='a');
+    const clubOver=Object.entries(sq.reduce((o,id)=>{const t=PBYID[id].team;o[t]=(o[t]||0)+1;return o},{})).filter(([,n])=>n>3);
+    const stat=(l,v,t,cls)=>`<div class="lst${cls?' '+cls:''}"${t?` title="${t}"`:''}><span>${l}</span><b>${v}</b></div>`;
+    sum.innerHTML=`<div class="lbig"><span>xP GW${D.next.id}</span><b>${xp.toFixed(1)}</b><small>${capP?'C: '+esc(capP.name)+' ×2':'Ingen kaptein'}</small></div>
+      <div class="lsts">
+       ${stat('Budsjett igjen',`£${left.toFixed(1)}m`,`Brukt £${val.toFixed(1)}m av £${budget.toFixed(1)}m for hele troppen`,left<-1e-9?'neg':'')}
+       ${stat('Troppsverdi',`£${val.toFixed(1)}m`,'Sum pris for alle '+sq.length+' spillere')}
+       ${stat('Benk xP',S(bx,'xp').toFixed(1),'Forventede poeng for benken (teller ikke i totalen)')}
+       ${stat('Formasjon',xi.length?`${cnt(xi,2)}-${cnt(xi,3)}-${cnt(xi,4)}`:'–')}
+       ${stat('Poeng totalt',pts,'Sum FPL-poeng denne sesongen for startelleveren')}
+       ${stat('Poeng/runde',(pts/gw).toFixed(1),'Totalpoeng delt på '+gw+' spilte runder')}
+       ${stat('Sum form',S(xi,'form').toFixed(1),'Sum av form for startelleveren')}
+       ${stat('Sum xGI',S(xi,'xgi').toFixed(2),'Forventede mål + assist')}
+       ${stat('Sum DC/90',xi.filter(id=>PBYID[id].pos>1).reduce((s,id)=>s+PBYID[id].dc90,0).toFixed(1),'Defensive contributions per 90 for utespillerne')}
+       ${stat('Snitt eid',own.toFixed(1)+' %','Høyt = trygt, lavt = differensial')}
+       ${stat('Snitt FDR',xi.length?fdr.toFixed(2):'–','Snitt kampvanskelighet neste 5 runder (1 lett – 5 vanskelig)')}
+      </div>
+      ${left<-1e-9?`<p class="lwarn">Troppen er £${(-left).toFixed(1)}m over budsjett.</p>`:''}
+      ${risk.length?`<p class="lwarn">Usikre: ${risk.map(p=>`${esc(p.name)} (${p.chance!=null?p.chance+' %':stTitle[p.status]})`).join(', ')}</p>`:''}`;
+    save();
+  }
+  pitch.onclick=e=>{
+    const add=e.target.closest('[data-add]');if(add){openM([+add.dataset.add],'xi',null);return}
+    const bs=e.target.closest('[data-bench]');if(bs){const i=+bs.dataset.bench;openM(i===0?[1]:[2,3,4],'b'+i,null);return}
+    const c=e.target.closest('.pcard[data-id]');if(!c)return;const id=+c.dataset.id, where=c.dataset.where;
+    const bt=e.target.closest('button[data-act]');
+    if(!bt){const p=PBYID[id];openM(where==='xi'||where==='b0'?[p.pos]:[2,3,4],where,id);return}
+    const act=bt.dataset.act;
+    if(act==='rm'){if(where==='xi')xi=xi.filter(x=>x!==id);else bench[+where[1]]=null;if(cap===id)cap=xi[0]??null;if(vice===id)vice=null;swapSel=null;msg.textContent=''}
+    else if(act==='c'){if(vice===id)vice=cap;cap=id}
+    else if(act==='v'){if(cap===id)cap=vice;vice=id}
+    else if(act==='sw'){if(swapSel==null)swapSel=id;else if(swapSel===id)swapSel=null;else{const w=trySwap(swapSel,id);msg.textContent=w?w+'.':'';swapSel=null}}
+    render()};
+  document.getElementById('lclear').onclick=()=>{xi=[];bench=[null,null,null,null];cap=vice=null;swapSel=null;msg.textContent='';render()};
+  render();
+})();
+
+// ---------- fixtures grid
+const gws=[...new Set(D.fx.map(f=>f[0]))].filter(g=>g>D.gw).sort((a,b)=>a-b);
+const ft=document.getElementById('ftable');
+ft.querySelector('thead').innerHTML='<tr><th class="l">Klubb</th>'+gws.map(g=>`<th class="l" title="Gameweek ${g}">GW${g}</th>`).join('')+'<th title="Snitt kampvanskelighet GW'+gws[0]+'–'+gws[gws.length-1]+'">Snitt</th></tr>';
+const avgAll=t=>{const l=FX[t].filter(f=>gws.includes(f.gw));return l.reduce((s,f)=>s+f.d,0)/l.length};
+ft.querySelector('tbody').innerHTML=[...D.teams].sort((a,b)=>avgAll(a[0])-avgAll(b[0])).map(t=>`<tr><td class="l name">${esc(t[1])}</td>`+
+  gws.map(g=>{const f=FX[t[0]].filter(x=>x.gw===g);return `<td class="l"><span class="fdr">${f.length?f.map(chip).join(''):'<i class="d3">–</i>'}</span></td>`}).join('')+
+  `<td class="num-strong">${fmt(avgAll(t[0]),2)}</td></tr>`).join('');
+</script>
