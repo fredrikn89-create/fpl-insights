@@ -1,7 +1,14 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Uoffisielt Fantasy Premier League-dashboard med egen xP-modell og lagbygger.">
 <title>FPL Insights</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
+[hidden]{display:none!important}
 /* Layout: scouting desk — compact masthead, tab rail, dense sortable tables; club colours never, FDR colours as the one semantic system */
 :root{
   --bg:#f2f4f8; --surface:#ffffff; --ink:#141b2b; --muted:#5a6478; --line:#dce1ea;
@@ -206,6 +213,8 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
 .linkbtn:hover{color:var(--pitch);text-decoration:underline}
 @media (prefers-reduced-motion:no-preference){.tabs button{transition:color .15s,border-color .15s}}
 </style>
+</head>
+<body>
 <div class="wrap">
 <header class="mast">
   <div>
@@ -791,3 +800,5 @@ ft.querySelector('tbody').innerHTML=[...D.teams].sort((a,b)=>avgAll(a[0])-avgAll
   gws.map(g=>{const f=FX[t[0]].filter(x=>x.gw===g);return `<td class="l"><span class="fdr">${f.length?f.map(chip).join(''):'<i class="d3">–</i>'}</span></td>`}).join('')+
   `<td class="num-strong">${fmt(avgAll(t[0]),2)}</td></tr>`).join('');
 </script>
+</body>
+</html>
