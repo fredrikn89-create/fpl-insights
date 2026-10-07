@@ -328,7 +328,7 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
   </div>
 </section>
 
-<footer class="foot">Data: <a href="https://fantasy.premierleague.com" target="_blank" rel="noopener">Fantasy Premier League</a> (fantasy.premierleague.com). Sist oppdatert __UPDATED__. Uoffisiell side, ikke tilknyttet Premier League.</footer>
+<footer class="foot">Data: <a href="https://fantasy.premierleague.com" target="_blank" rel="noopener">Fantasy Premier League</a> (fantasy.premierleague.com). Sist oppdatert __UPDATED__. Uoffisiell side, ikke tilknyttet Premier League. Anonym besøksstatistikk via <a href="https://www.goatcounter.com" target="_blank" rel="noopener">GoatCounter</a>, uten cookies.</footer>
 </div>
 
 <script>
@@ -819,5 +819,7 @@ ft.querySelector('tbody').innerHTML=[...D.teams].sort((a,b)=>avgAll(a[0])-avgAll
   gws.map(g=>{const f=FX[t[0]].filter(x=>x.gw===g);return `<td class="l"><span class="fdr">${f.length?f.map(chip).join(''):'<i class="d3">–</i>'}</span></td>`}).join('')+
   `</tr>`).join('');
 </script>
+<script data-goatcounter="https://fplinsights.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
