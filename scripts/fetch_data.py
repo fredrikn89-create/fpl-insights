@@ -47,7 +47,7 @@ def main(out="data.json"):
     def num(x, nd=2):
         return round(float(x), nd) if x not in (None, "") else 0
 
-    players, dct, rw = [], {}, {}
+    players, dct, rw, l5 = [], {}, {}, {}
     pool = [e for e in b["elements"]
             if e["minutes"] >= 90 or float(e["selected_by_percent"]) >= 2]
     pool.sort(key=lambda e: e["id"])
@@ -68,7 +68,7 @@ def main(out="data.json"):
         time.sleep(DELAY)
         hist = get(f"element-summary/{e['id']}/")["history"]
         thr = 10 if e["element_type"] == 2 else 12
-        played = hit = 0
+        played = hit = last5 = 0
         wm = wxg = wxa = wb = ws = wst = wsum = 0.0
         for m in hist:
             if m["round"] > cur:
@@ -77,6 +77,8 @@ def main(out="data.json"):
             wsum += w
             if m["minutes"] > 0:
                 played += 1
+                if m["round"] > cur - 5:
+                    last5 += 1
                 if m["defensive_contribution"] >= thr:
                     hit += 1
             wm += w * m["minutes"]
@@ -85,6 +87,7 @@ def main(out="data.json"):
             wb += w * m["bonus"]
             ws += w * m["saves"]
             wst += w * m["starts"]
+        l5[str(e["id"])] = last5
         if e["element_type"] != 1:
             dct[str(e["id"])] = [hit, played]
         rw[str(e["id"])] = [round(wm, 1), round(wxg, 3), round(wxa, 3),
@@ -97,7 +100,7 @@ def main(out="data.json"):
         "next": {"id": nxt["id"], "deadline": nxt["deadline_time"]},
         "avg": last.get("average_entry_score") or 0,
         "highest": last.get("highest_score") or 0,
-        "teams": teams, "fx": fx, "players": players, "dct": dct, "rw": rw,
+        "teams": teams, "fx": fx, "players": players, "dct": dct, "rw": rw, "l5": l5,
     }
     with open(out, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))

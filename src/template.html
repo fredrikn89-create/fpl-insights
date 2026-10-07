@@ -300,8 +300,9 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
   </div>
   <div class="quick" id="lquick">
     <span>Hurtigvalg innenfor budsjett:</span>
-    <button type="button" class="qbtn" data-q="under" title="Populære spillere (høy eierandel) som har scoret og assistert mindre enn xGI tilsier">Underpresterende poppis</button>
-    <button type="button" class="qbtn" data-q="over" title="Populære spillere (høy eierandel) som har scoret og assistert mer enn xGI tilsier">Overpresterende poppis</button>
+    <button type="button" class="qbtn" data-q="under" title="Populære spillere (høy eierandel) som har scoret og assistert mindre enn xGI tilsier">Populære underbetalte</button>
+    <button type="button" class="qbtn" data-q="over" title="Populære spillere (høy eierandel) som har scoret og assistert mer enn xGI tilsier">Populære overbetalte</button>
+    <button type="button" class="qbtn" data-q="due" title="Spillerne med størst avstand mellom xGI og faktiske mål og assist. Kun spillere med minst 200 minutter som har spilt i minst 3 av de siste 5 rundene">Mest underbetalt</button>
     <button type="button" class="qbtn" data-q="xp" title="Troppen på 15 som gir høyest forventede poeng for startelleveren neste runde, inkludert kaptein">Høyest forventet poengsum</button>
     <button type="button" class="qbtn" data-q="own" title="Troppen med de mest eide spillerne">Mest eid</button>
     <button type="button" class="qbtn" data-q="form" title="Spillerne med høyest form (snitt poeng per kamp siste 30 dager)">Formspillere</button>
@@ -337,7 +338,8 @@ const badge = t=>`<span class="badge" style="${clubStyle(t)}" title="${TEAMS[t].
 const TEAMS = Object.fromEntries(D.teams.map(t=>[t[0],{id:t[0],name:t[1],short:t[2]}]));
 const P = D.players.map(r=>{const o={};K.forEach((k,i)=>o[k]=r[i]);
   o.price=o.cost/10; o.xgi=+(o.xg+o.xa).toFixed(2); o.gi=o.g+o.a;
-  o.dc90=o.min?o.dc/o.min*90:0; o.ppm=o.pts/o.price; o.net=o.tin-o.tout; o.p90=o.min?o.pts/o.min*90:0; o.rel=o.xgi>=0.3?(o.gi-o.xgi)/o.xgi*100:null; return o;});
+  o.dc90=o.min?o.dc/o.min*90:0; o.ppm=o.pts/o.price; o.net=o.tin-o.tout; o.p90=o.min?o.pts/o.min*90:0; o.rel=o.xgi>=0.3?(o.gi-o.xgi)/o.xgi*100:null;
+  o.l5=D.l5&&D.l5[o.id]!=null?D.l5[o.id]:(D.dct&&D.dct[o.id]?Math.min(5,D.dct[o.id][1]):Math.min(5,o.starts)); return o;});
 
 // fixtures per team
 const FX = {}; D.teams.forEach(t=>FX[t[0]]=[]);
@@ -727,8 +729,9 @@ renderC();
   }
   const relOf=p=>p.rel==null?0:p.rel;
   const QUICK={
-    under:{s:p=>p.sel*(p.rel!=null&&p.rel<0?1+Math.min(1,-p.rel/100):0.15),t:'Underpresterende poppis: populære spillere som har levert under xGI. Keepere og spillere uten nok xGI fylles inn etter eierandel.'},
-    over:{s:p=>p.sel*(p.rel!=null&&p.rel>0?1+Math.min(1,p.rel/100):0.15),t:'Overpresterende poppis: populære spillere som har levert over xGI. Keepere og spillere uten nok xGI fylles inn etter eierandel.'},
+    under:{s:p=>p.sel*(p.rel!=null&&p.rel<0?1+Math.min(1,-p.rel/100):0.15),t:'Populære underbetalte: populære spillere som har levert under xGI. Keepere og spillere uten nok xGI fylles inn etter eierandel.'},
+    over:{s:p=>p.sel*(p.rel!=null&&p.rel>0?1+Math.min(1,p.rel/100):0.15),t:'Populære overbetalte: populære spillere som har levert over xGI. Keepere og spillere uten nok xGI fylles inn etter eierandel.'},
+    due:{s:p=>(p.min>=200&&p.l5>=3?Math.max(0,p.xgi-p.gi):0)+0.01*p.xp,t:'Mest underbetalt: spillerne med flest «manglende» mål og assist (xGI minus faktiske mål og assist), blant dem som har spilt minst 200 minutter og vært på banen i minst 3 av de siste 5 rundene. Resten av troppen fylles inn etter forventede poeng.'},
     xp:{s:p=>p.xp,cap:true,t:'Høyest forventet poengsum: troppen som gir mest forventede poeng i startelleveren neste runde, med kaptein.'},
     own:{s:p=>p.sel,t:'Mest eid: troppen med høyest samlet eierandel.'},
     form:{s:p=>p.min>0?p.form:0,t:'Formspillere: troppen med høyest form, altså snitt FPL-poeng per kamp de siste 30 dagene.'},
