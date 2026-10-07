@@ -41,7 +41,6 @@ h2{font-size:22px} h3{font-size:18px;font-weight:600}
 .gw div{display:grid}
 .gw b{font:600 26px var(--display);font-variant-numeric:tabular-nums}
 .gw span{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-@media (max-width:480px){.tabs button{padding:8px 9px;font-size:16px}.tabs{gap:0}}
 .groups{display:flex;gap:6px;margin:4px 0 10px}
 .groups button{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;background:none;border:1px solid var(--line);color:var(--muted);padding:7px 14px;border-radius:999px;cursor:pointer}
 .groups button[aria-pressed="true"]{background:var(--pitch);border-color:var(--pitch);color:var(--bg,#fff)}
@@ -216,6 +215,7 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
 .linkbtn{background:none;border:0;padding:0;color:var(--ink);font:inherit;font-weight:600;cursor:pointer;text-align:left}
 .linkbtn:hover{color:var(--pitch);text-decoration:underline}
 @media (prefers-reduced-motion:no-preference){.tabs button{transition:color .15s,border-color .15s}}
+@media (max-width:480px){.tabs button{padding:8px 9px;font-size:16px}.tabs{gap:0}}
 </style>
 </head>
 <body>
