@@ -14,7 +14,7 @@
   --bg:#f2f4f8; --surface:#ffffff; --ink:#141b2b; --muted:#5a6478; --line:#dce1ea;
   --pitch:#b0602c; --pitch-soft:#f5ebe3; --claret:#8a2443;
   --good:#1f8a4c; --warn:#b97a10; --bad:#b8323a;
-  --f1:#1e7a46; --f2:#57b36f; --f3:#d9ded8; --f4:#e0857a; --f5:#9b2232; --f-ink:#fff; --f3-ink:#2a332d;
+  --f1:#1e7a46; --f2:#57b36f; --f3:#dde0e6; --f4:#e0857a; --f5:#9b2232; --f-ink:#fff; --f3-ink:#2a332d;
   --display:"Barlow Condensed","Arial Narrow",sans-serif;
   --body:"IBM Plex Sans",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,monospace;
@@ -23,12 +23,12 @@
   --bg:#0e131c; --surface:#151c28; --ink:#e3e8f1; --muted:#8f9bb0; --line:#243044;
   --pitch:#dd965f; --pitch-soft:#2b2119; --claret:#e07a98;
   --good:#5cc28a; --warn:#e2ad4a; --bad:#ec6b72;
-  --f1:#2f9a5c; --f2:#3f7a52; --f3:#38423b; --f4:#9c4a44; --f5:#c03445; --f3-ink:#e4ebe6; color-scheme:dark}}
+  --f1:#1f8f4f; --f2:#58ad70; --f3:#4b535e; --f4:#9c4a44; --f5:#c03445; --f3-ink:#e4ebe6; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0e131c; --surface:#151c28; --ink:#e3e8f1; --muted:#8f9bb0; --line:#243044;
   --pitch:#dd965f; --pitch-soft:#2b2119; --claret:#e07a98;
   --good:#5cc28a; --warn:#e2ad4a; --bad:#ec6b72;
-  --f1:#2f9a5c; --f2:#3f7a52; --f3:#38423b; --f4:#9c4a44; --f5:#c03445; --f3-ink:#e4ebe6; color-scheme:dark}
+  --f1:#1f8f4f; --f2:#58ad70; --f3:#4b535e; --f4:#9c4a44; --f5:#c03445; --f3-ink:#e4ebe6; color-scheme:dark}
 body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--body);padding-inline:16px;padding-block:20px 48px}
 .wrap{max-width:1240px;margin:0 auto;display:grid;gap:20px}
 h1,h2,h3{font-family:var(--display);font-weight:700;text-wrap:balance;margin:0;letter-spacing:.01em}
@@ -337,7 +337,7 @@ D.fx.forEach(([gw,h,a,hd,ad])=>{FX[h].push({gw,opp:a,home:true,d:hd});FX[a].push
 Object.values(FX).forEach(l=>l.sort((x,y)=>x.gw-y.gw));
 const next5 = t=>FX[t].filter(f=>f.gw>=D.next.id && f.gw<D.next.id+5);
 const fdrAvg = t=>{const l=next5(t);return l.length?l.reduce((s,f)=>s+f.d,0)/l.length:3};
-const chip = f=>`<i class="d${f.d}" title="GW${f.gw}: ${TEAMS[f.opp].name} ${f.home?'hjemme':'borte'} (FDR ${f.d})">${TEAMS[f.opp].short}${f.home?'·H':''}</i>`;
+const chip = f=>`<i class="d${f.d}" title="GW${f.gw}: ${TEAMS[f.opp].name} ${f.home?'hjemme':'borte'} (FDR ${f.d})">${TEAMS[f.opp].short}${f.home?'·H':'·B'}</i>`;
 const fdrHtml = t=>`<span class="fdr">${next5(t).map(chip).join('')}</span>`;
 const fmt = (v,d=1)=>v==null?'–':(+v).toFixed(d);
 const relHtml = v=>v==null?'<span style="color:var(--muted)">N/A</span>':`<span style="color:var(${v>=0?'--good':'--bad'})">${v>0?'+':''}${Math.round(v)} %</span>`;
