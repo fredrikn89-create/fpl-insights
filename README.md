@@ -1,5 +1,7 @@
 # FPL Insights
 
+**Live side: https://fredrikn89-create.github.io/fpl-insights/**
+
 Uoffisielt dashboard for Fantasy Premier League med egen xP-modell og lagbygger.
 Data hentes fra [Fantasy Premier League](https://fantasy.premierleague.com) en gang i døgnet.
 Ikke tilknyttet Premier League.
