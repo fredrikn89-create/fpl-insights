@@ -41,6 +41,10 @@ h2{font-size:22px} h3{font-size:18px;font-weight:600}
 .gw div{display:grid}
 .gw b{font:600 26px var(--display);font-variant-numeric:tabular-nums}
 .gw span{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+@media (max-width:480px){.tabs button{padding:8px 9px;font-size:16px}.tabs{gap:0}}
+.groups{display:flex;gap:6px;margin:4px 0 10px}
+.groups button{font:600 13px var(--mono);letter-spacing:.08em;text-transform:uppercase;background:none;border:1px solid var(--line);color:var(--muted);padding:7px 14px;border-radius:999px;cursor:pointer}
+.groups button[aria-pressed="true"]{background:var(--pitch);border-color:var(--pitch);color:var(--bg,#fff)}
 .tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line)}
 .tabs button{font:600 17px var(--display);letter-spacing:.03em;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:8px 14px;cursor:pointer;white-space:nowrap}
 .tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--pitch)}
@@ -224,15 +228,19 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
   </div>
 </header>
 
+<nav class="groups" aria-label="Hovedkategori">
+  <button data-group="fpl" aria-pressed="true">FPL-innsikt</button>
+  <button data-group="stats" aria-pressed="false">Kampstatistikk</button>
+</nav>
 <nav class="tabs" role="tablist">
-  <button role="tab" data-tab="spillere" aria-selected="true">Spillere</button>
-  <button role="tab" data-tab="klubber" aria-selected="false">Klubber</button>
-  <button role="tab" data-tab="innsikt" aria-selected="false">Fantasy-innsikt</button>
-  <button role="tab" data-tab="kamper" aria-selected="false">Kampprogram</button>
-  <button role="tab" data-tab="lag" aria-selected="false">Lagbygger</button>
+  <button role="tab" data-tab="lag" data-group="fpl" aria-selected="true">Lagbygger</button>
+  <button role="tab" data-tab="innsikt" data-group="fpl" aria-selected="false">FPL-stats</button>
+  <button role="tab" data-tab="kamper" data-group="fpl" aria-selected="false">Kampprogram</button>
+  <button role="tab" data-tab="spillere" data-group="stats" aria-selected="false" hidden>Spillere</button>
+  <button role="tab" data-tab="klubber" data-group="stats" aria-selected="false" hidden>Klubber</button>
 </nav>
 
-<section id="tab-spillere" class="wrap">
+<section id="tab-spillere" class="wrap" hidden>
   <div class="filters">
     <label>Posisjon<div class="chips" id="posChips"></div></label>
     <label for="maxp">Maks pris <span id="maxpv"></span><input id="maxp" type="range" min="40" max="160" step="5" value="160"></label>
@@ -281,7 +289,7 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
   <div class="tbl"><table id="ftable"><thead></thead><tbody></tbody></table></div>
   <div class="meta"><span>Sortert etter snitt-FDR for GW6–11 (lavest = lettest). 1 = lett, 5 = svært vanskelig.</span></div>
 </section>
-<section id="tab-lag" class="wrap" hidden>
+<section id="tab-lag" class="wrap">
   <div class="filters">
     <div class="grow picker"><label for="pk-team-in">Legg til spiller (<span id="lcount">0</span> av 15) · eller klikk en posisjon på banen</label>
       <div class="pbox" data-pk="pk-team"><span class="picked"></span><input id="pk-team-in" type="text" placeholder="Søk opp en spiller" autocomplete="off" role="combobox" aria-expanded="false"></div>
@@ -350,13 +358,18 @@ const dl = new Date(D.next.deadline);
 const dlTxt = dl.toLocaleString('nb-NO',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Oslo'});
 document.getElementById('sub').textContent = `Data fra Fantasy Premier League etter gameweek ${D.gw}. Frist for GW${D.next.id}: ${dlTxt}.`;
 
-// tabs
+// tabs (to nivåer: kategori → fane)
 const tabs=[...document.querySelectorAll('.tabs button')];
-function showTab(id){tabs.forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===id));
-  ['spillere','innsikt','klubber','kamper','lag'].forEach(t=>document.getElementById('tab-'+t).hidden=t!==id);
+const groups=[...document.querySelectorAll('.groups button')];
+const TABIDS=tabs.map(b=>b.dataset.tab), lastInGroup={};
+function showTab(id){const g=tabs.find(b=>b.dataset.tab===id).dataset.group; lastInGroup[g]=id;
+  groups.forEach(b=>b.setAttribute('aria-pressed',b.dataset.group===g));
+  tabs.forEach(b=>{b.hidden=b.dataset.group!==g; b.setAttribute('aria-selected',b.dataset.tab===id)});
+  TABIDS.forEach(t=>document.getElementById('tab-'+t).hidden=t!==id);
   try{history.replaceState(null,'','#'+id)}catch(e){}}
 tabs.forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
-const h=location.hash.slice(1); if(['spillere','innsikt','klubber','kamper','lag'].includes(h)) showTab(h);
+groups.forEach(b=>b.onclick=()=>showTab(lastInGroup[b.dataset.group]||tabs.find(x=>x.dataset.group===b.dataset.group).dataset.tab));
+const h=location.hash.slice(1); showTab(TABIDS.includes(h)?h:'lag');
 
 // ---------- expected points model (next GW)
 (function(){
