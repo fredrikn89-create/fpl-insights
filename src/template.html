@@ -203,6 +203,10 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
 .pcard .sw{position:absolute;top:1px;left:3px;border:0;background:none;color:var(--muted);font-size:12px;cursor:pointer;line-height:1;padding:2px}
 .pcard .sw:hover,.pcard .sw[aria-pressed="true"]{color:var(--pitch)}
 .pcard.swapsel{outline:2px solid var(--pitch);outline-offset:1px}
+.pcard.swok{outline:2px dashed var(--good);outline-offset:1px}
+.pcard.swno{opacity:.45}
+.swbtn{font:600 9.5px var(--mono);border:1px solid var(--pitch);background:var(--pitch-soft);color:var(--pitch);border-radius:4px;padding:2px 5px;cursor:pointer;margin-top:2px;white-space:nowrap}
+.swbtn[aria-pressed="true"]{background:var(--pitch);color:var(--bg)}
 .pcard .flag{left:auto;right:18px}
 .modal{position:fixed;inset:0;z-index:20;background:color-mix(in srgb,var(--ink) 45%,transparent);display:grid;justify-items:center;align-items:start;padding:6vh 16px 16px}
 .mbox{background:var(--surface);border-radius:10px;width:min(760px,100%);max-height:min(680px,86vh);display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:10px;padding:14px 16px;box-shadow:0 20px 50px color-mix(in srgb,var(--ink) 30%,transparent)}
@@ -678,16 +682,21 @@ renderC();
 
   // ---- bytte mellom benk og startellever
   function validXI(arr){return [1,2,3,4].every(k=>{const c=cnt(arr,k);return c>=LIM[k][0]&&c<=LIM[k][1]})}
-  function trySwap(a,b){
+  function swapErr(a,b){
     const ia=xi.indexOf(a),ib=xi.indexOf(b),ja=bench.indexOf(a),jb=bench.indexOf(b);
-    if((ia>=0)===(ib>=0)){ // samme gruppe: bare bytt rekkefølge på benken
-      if(ja>=1&&jb>=1){bench[ja]=b;bench[jb]=a;return null}
-      return 'Velg én spiller i startelleveren og én på benken';}
-    const s=ia>=0?a:b, bn=ia>=0?b:a, j=bench.indexOf(bn);
+    if((ia>=0)===(ib>=0)){ if(ja>=1&&jb>=1)return null; return 'Velg én spiller i startelleveren og én på benken'}
+    const s=ia>=0?a:b, bn=ia>=0?b:a;
     if((PBYID[s].pos===1)!==(PBYID[bn].pos===1))return 'Keeper kan bare byttes med keeper';
     const nx=xi.map(id=>id===s?bn:id);
     if(nx.length===11&&!validXI(nx))return 'Byttet gir ugyldig formasjon';
-    xi=nx;bench[j]=s;if(cap===s)cap=bn;if(vice===s)vice=bn;return null;
+    return null;
+  }
+  function trySwap(a,b){
+    const e=swapErr(a,b); if(e)return e;
+    const ia=xi.indexOf(a),ib=xi.indexOf(b),ja=bench.indexOf(a),jb=bench.indexOf(b);
+    if((ia>=0)===(ib>=0)){bench[ja]=b;bench[jb]=a;return null}
+    const s=ia>=0?a:b, bn=ia>=0?b:a, j=bench.indexOf(bn);
+    xi=xi.map(id=>id===s?bn:id);bench[j]=s;if(cap===s)cap=bn;if(vice===s)vice=bn;return null;
   }
 
   // ---- hurtigvalg: lokal søk-optimering av 15-mannstropp innenfor budsjett
@@ -750,8 +759,8 @@ renderC();
   // ---- tegning
   const pitch=document.getElementById('pitch'), sum=document.getElementById('lsum');
   function card(p,where){
-    const sel=swapSel===p.id;
-    return `<div class="pcard${sel?' swapsel':''}${where!=='xi'?' bcard':''}" data-id="${p.id}" data-where="${where}" title="Klikk for å bytte ut">
+    const sel=swapSel===p.id, tg=swapSel!=null&&!sel?(swapErr(swapSel,p.id)?' swno':' swok'):'';
+    return `<div class="pcard${sel?' swapsel':''}${tg}${where!=='xi'?' bcard':''}" data-id="${p.id}" data-where="${where}" title="Klikk for å bytte ut">
       <button type="button" class="rm" data-act="rm" aria-label="Fjern ${esc(p.name)}">×</button>
       <button type="button" class="sw" data-act="sw" aria-pressed="${sel}" title="Bytt mellom benk og startellever: trykk her, og deretter på spilleren du vil bytte med">⇅</button>
       ${p.status!=='a'?`<span class="flag" title="${stTitle[p.status]}${p.chance!=null?' – '+p.chance+'% sjanse':''}">!</span>`:''}
@@ -760,6 +769,7 @@ renderC();
       <span class="xp">${fmt(p.xp*(p.id===cap&&where==='xi'?2:1))}<small> xP${p.id===cap&&where==='xi'?'×2':''}</small></span>
       <span class="meta2">£${p.price.toFixed(1)} ${next5(p.team).slice(0,1).map(f=>`<span class="opp d${f.d}" title="GW${f.gw}: ${TEAMS[f.opp].name} ${f.home?'hjemme':'borte'} (FDR ${f.d})">${TEAMS[f.opp].short} (${f.home?'H':'B'})</span>`).join('')||'<span class="opp d3">Ingen kamp</span>'}</span>
       <span class="dots" aria-label="Kampvanskelighet neste 5 runder">${next5(p.team).map(f=>`<i class="d${f.d}" title="GW${f.gw}: ${TEAMS[f.opp].short} ${f.home?'(H)':'(B)'} · FDR ${f.d}"></i>`).join('')}</span>
+      ${where!=='xi'?`<button type="button" class="swbtn" data-act="sw" aria-pressed="${sel}">${sel?'Velg bytte':'⇄ Bytt inn'}</button>`:''}
       ${where==='xi'?`<div class="cv"><button type="button" data-act="c" aria-pressed="${p.id===cap}" title="Kaptein (dobbel poeng)">C</button><button type="button" data-act="v" aria-pressed="${p.id===vice}" title="Visekaptein">V</button></div>`:''}
     </div>`;
   }
@@ -804,12 +814,16 @@ renderC();
     const bs=e.target.closest('[data-bench]');if(bs){const i=+bs.dataset.bench;openM(i===0?[1]:[2,3,4],'b'+i,null);return}
     const c=e.target.closest('.pcard[data-id]');if(!c)return;const id=+c.dataset.id, where=c.dataset.where;
     const bt=e.target.closest('button[data-act]');
+    if(!bt&&swapSel!=null){ // bytte pågår: trykk på kortet for å fullføre
+      if(id===swapSel){swapSel=null;msg.textContent=''}
+      else{const w=trySwap(swapSel,id);msg.textContent=w?w+'.':'Byttet er gjort.';if(!w)swapSel=null}
+      render();return}
     if(!bt){const p=PBYID[id];openM(where==='xi'||where==='b0'?[p.pos]:[2,3,4],where,id);return}
     const act=bt.dataset.act;
     if(act==='rm'){if(where==='xi')xi=xi.filter(x=>x!==id);else bench[+where[1]]=null;if(cap===id)cap=xi[0]??null;if(vice===id)vice=null;swapSel=null;msg.textContent=''}
     else if(act==='c'){if(vice===id)vice=cap;cap=id}
     else if(act==='v'){if(cap===id)cap=vice;vice=id}
-    else if(act==='sw'){if(swapSel==null)swapSel=id;else if(swapSel===id)swapSel=null;else{const w=trySwap(swapSel,id);msg.textContent=w?w+'.':'';swapSel=null}}
+    else if(act==='sw'){if(swapSel==null){swapSel=id;msg.textContent='Trykk på spilleren du vil bytte med. Markerte spillere kan byttes. Trykk på den valgte spilleren igjen for å avbryte.'}else if(swapSel===id)swapSel=null;else{const w=trySwap(swapSel,id);msg.textContent=w?w+'.':'';swapSel=null}}
     render()};
   document.getElementById('lclear').onclick=()=>{xi=[];bench=[null,null,null,null];cap=vice=null;swapSel=null;msg.textContent='';render()};
   render();
