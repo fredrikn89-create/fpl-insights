@@ -792,13 +792,13 @@ renderC();
 })();
 
 // ---------- fixtures grid
-const gws=[...new Set(D.fx.map(f=>f[0]))].filter(g=>g>D.gw).sort((a,b)=>a-b);
+const gws=[...new Set(D.fx.map(f=>f[0]))].filter(g=>g>D.gw).sort((a,b)=>a-b).slice(0,5);
 const ft=document.getElementById('ftable');
-ft.querySelector('thead').innerHTML='<tr><th class="l">Klubb</th>'+gws.map(g=>`<th class="l" title="Gameweek ${g}">GW${g}</th>`).join('')+'<th title="Snitt kampvanskelighet GW'+gws[0]+'–'+gws[gws.length-1]+'">Snitt</th></tr>';
+ft.querySelector('thead').innerHTML='<tr><th class="l">Klubb</th><th title="Snitt kampvanskelighet GW'+gws[0]+'–'+gws[gws.length-1]+' (1 = lettest, 5 = vanskeligst)">Snitt</th>'+gws.map(g=>`<th class="l" title="Gameweek ${g}">GW${g}</th>`).join('')+'</tr>';
 const avgAll=t=>{const l=FX[t].filter(f=>gws.includes(f.gw));return l.reduce((s,f)=>s+f.d,0)/l.length};
-ft.querySelector('tbody').innerHTML=[...D.teams].sort((a,b)=>avgAll(a[0])-avgAll(b[0])).map(t=>`<tr><td class="l name">${esc(t[1])}</td>`+
+ft.querySelector('tbody').innerHTML=[...D.teams].sort((a,b)=>avgAll(a[0])-avgAll(b[0])).map(t=>`<tr><td class="l name">${esc(t[1])}</td><td class="num-strong">${fmt(avgAll(t[0]),2)}</td>`+
   gws.map(g=>{const f=FX[t[0]].filter(x=>x.gw===g);return `<td class="l"><span class="fdr">${f.length?f.map(chip).join(''):'<i class="d3">–</i>'}</span></td>`}).join('')+
-  `<td class="num-strong">${fmt(avgAll(t[0]),2)}</td></tr>`).join('');
+  `</tr>`).join('');
 </script>
 </body>
 </html>
