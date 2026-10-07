@@ -163,8 +163,8 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
 .field .pcard.ghost .plus{color:var(--grass-ink)}
 .field .pcard.ghost:hover{background:rgba(255,255,255,.18);color:var(--grass-ink)}
 .bench{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 8px}
-.prow{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
-.pcard{position:relative;width:96px;background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:6px 4px 5px;display:grid;justify-items:center;gap:2px;text-align:center;font-size:11px;box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 10%,transparent);cursor:pointer;font-family:var(--body);color:var(--ink)}
+.prow{display:grid;grid-template-columns:repeat(var(--n,4),minmax(0,96px));justify-content:center;gap:6px}
+.pcard{position:relative;width:auto;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:6px 4px 5px;display:grid;justify-items:center;gap:2px;text-align:center;font-size:11px;box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 10%,transparent);cursor:pointer;font-family:var(--body);color:var(--ink)}
 .pcard:hover{border-color:var(--pitch)}
 .pcard b{font-size:12px;line-height:1.15;overflow-wrap:anywhere}
 .pcard .xp{font:600 13px var(--mono);color:var(--pitch)}
@@ -184,7 +184,12 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
 .cv{display:flex;gap:3px}
 .cv button{font:600 9.5px var(--mono);width:20px;height:18px;border-radius:4px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer;padding:0}
 .cv button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
-@media (max-width:520px){.pcard{width:calc(25% - 6px)}.pcard b{font-size:11px}}
+@media (max-width:520px){.prow{gap:4px}.field{padding-inline:4px}
+  .pcard{padding:5px 2px 4px;font-size:10px}.pcard b{font-size:10.5px;line-height:1.1}
+  .pcard .xp{font-size:12px}.pcard .xp small{font-size:8px}
+  .pcard .meta2{flex-wrap:wrap;justify-content:center;gap:2px;font-size:9px}.pcard .opp{font-size:8.5px;padding:1px 3px}
+  .pcard .badge{font-size:8.5px;padding:1px 4px}.pcard .dots{gap:2px}.pcard .dots i{width:6px;height:6px}
+  .cv button{width:18px;height:17px}.pcard .rm{right:1px}.pcard .sw{left:1px}}
 .quick{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .quick>span{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-right:4px}
 .qbtn{font:500 13px var(--body);border:1px solid transparent;background:color-mix(in srgb,var(--ink) 9%,var(--surface));color:var(--ink);border-radius:999px;padding:5px 13px;cursor:pointer}
@@ -766,9 +771,9 @@ renderC();
       const need=Math.max(0,LIM[pos][0]-c);
       const ghosts=Array.from({length:need},()=>slot(`data-add="${pos}"`,POS[pos])).join('');
       const extra=(!need&&c<LIM[pos][1]&&xi.length<11&&!canAdd({id:-1,pos,team:-1},null,'xi'))?slot(`data-add="${pos}"`,POS[pos],'opt'):'';
-      return `<div class="prow">${row.map(p=>card(p,'xi')).join('')}${ghosts}${extra}</div>`}).join('');
+      return `<div class="prow" style="--n:${c+need+(extra?1:0)}">${row.map(p=>card(p,'xi')).join('')}${ghosts}${extra}</div>`}).join('');
     const benchRow=bench.map((id,i)=>id!=null?card(PBYID[id],'b'+i):slot(`data-bench="${i}"`,i===0?'MÅL':'Benk '+i,'bslot')).join('');
-    pitch.innerHTML=`<div class="field"><i class="mk box"></i><i class="mk six"></i><i class="mk arc"></i><i class="mk spot"></i><i class="mk circle"></i><i class="mk cspot"></i>${rows}</div><div class="bench"><span class="blabel">Benk</span><div class="prow">${benchRow}</div></div>`;
+    pitch.innerHTML=`<div class="field"><i class="mk box"></i><i class="mk six"></i><i class="mk arc"></i><i class="mk spot"></i><i class="mk circle"></i><i class="mk cspot"></i>${rows}</div><div class="bench"><span class="blabel">Benk</span><div class="prow" style="--n:4">${benchRow}</div></div>`;
     const S=(arr,k)=>arr.reduce((s,id)=>s+PBYID[id][k],0);
     const capP=xi.includes(cap)?PBYID[cap]:null, xp=S(xi,'xp')+(capP?capP.xp:0);
     const bx=bench.filter(x=>x!=null), val=cost(sq), left=budget-val, pts=S(xi,'pts'), gw=Math.max(1,D.gw);
