@@ -350,7 +350,7 @@ const badge = t=>`<span class="badge" style="${clubStyle(t)}" title="${TEAMS[t].
 const TEAMS = Object.fromEntries(D.teams.map(t=>[t[0],{id:t[0],name:t[1],short:t[2]}]));
 const P = D.players.map(r=>{const o={};K.forEach((k,i)=>o[k]=r[i]);
   o.price=o.cost/10; o.xgi=+(o.xg+o.xa).toFixed(2); o.gi=o.g+o.a;
-  o.dc90=o.min?o.dc/o.min*90:0; o.ppm=o.pts/o.price; o.net=o.tin-o.tout; o.p90=o.min?o.pts/o.min*90:0; o.rel=o.xgi>=0.3?(o.gi-o.xgi)/o.xgi*100:null;
+  o.dc90=o.min?o.dc/o.min*90:0; o.ppm=o.pts/o.price; o.net=o.tin-o.tout; o.p90=o.min?o.pts/o.min*90:0; o.rel=o.xgi>=0.3?(o.gi-o.xgi)/o.xgi*100:null; const pcv=D.pc&&D.pc[o.id]; o.pct=pcv?pcv[0]/10:0; o.pcm=pcv?pcv[1]/10:0;
   o.l5=D.l5&&D.l5[o.id]!=null?D.l5[o.id]:(D.dct&&D.dct[o.id]?Math.min(5,D.dct[o.id][1]):Math.min(5,o.starts)); return o;});
 
 // fixtures per team
@@ -521,6 +521,10 @@ renderP();
 const thr=p=>p.pos===2?10:12;
 const DCT=D.dct||{};
 P.forEach(p=>{const t=DCT[p.id];p.dch=t?t[0]:0;p.dca=t?t[1]:0;});
+const fmtPc=v=>(v>0?'+':'')+v.toFixed(1);
+const PRICESEC={h:'Prisendringer',d:'Hvor mye prisen har steget eller falt, i millioner pund. Topp = størst stigning, bunn = størst fall.',panels:[
+  {id:'pcm',t:'Siste måned',d:'Prisendring de siste 30 dagene. Før sesongen er 30 dager gammel, er det endring siden sesongstart.',v:p=>p.pcm,f:fmtPc,vl:'£m',pool:p=>true,col:v=>v>0?'--good':v<0?'--bad':'--muted',sub:p=>'totalt '+fmtPc(p.pct)},
+  {id:'pct',t:'Totalt',d:'Prisendring siden sesongstart.',v:p=>p.pct,f:fmtPc,vl:'£m',pool:p=>true,col:v=>v>0?'--good':v<0?'--bad':'--muted',sub:p=>'måned '+fmtPc(p.pcm)}]};
 const SECS=[
  {h:'Forventede poeng GW'+D.next.id,d:'Egen modell der de siste kampene teller mest. Basert på forventede mål og assist, straffeansvar, motstanderens styrke, hjemme/borte, sjanse for clean sheet, DC-terskel, bonus og forventede minutter. Hold musen over tallet for å se hva poengene består av for hver spiller.',panels:[
   {id:'xp',t:'Forventede poeng',d:'Modellens anslag for GW'+D.next.id+'.',v:p=>p.xp,f:v=>v.toFixed(1),vl:'xP',pool:p=>p.min>=90,tip:true},
@@ -541,7 +545,8 @@ const SECS=[
  {h:'Overganger og form',d:'Markedet før neste frist.',panels:[
   {id:'form',t:'Form',d:'Snitt FPL-poeng per kamp de siste 30 dagene.',v:p=>p.form,f:v=>v.toFixed(1),vl:'Form',pool:p=>p.min>=90},
   {id:'diff',t:'Differensialer i form',d:'Tilgjengelige spillere med under 5 % eierskap, sortert på form.',v:p=>p.form,f:v=>v.toFixed(1),vl:'Form',pool:p=>p.sel<5&&p.status==='a'&&p.min>=180},
-  {id:'net',t:'Netto overganger',d:'Inn minus ut før GW'+D.next.id+'. Topp = mest kjøpt, bunn = mest solgt.',v:p=>p.net,f:v=>(v>0?'+':'')+v.toLocaleString('nb-NO'),vl:'Netto',pool:p=>true,col:v=>v>=0?'--good':'--bad'}]}];
+  {id:'net',t:'Netto overganger',d:'Inn minus ut før GW'+D.next.id+'. Topp = mest kjøpt, bunn = mest solgt.',v:p=>p.net,f:v=>(v>0?'+':'')+v.toLocaleString('nb-NO'),vl:'Netto',pool:p=>true,col:v=>v>=0?'--good':'--bad'}]}]
+if(D.pc)SECS.push(PRICESEC);
 const istate={pos:0,dir:{},teams:new Set()};
 const itc=document.getElementById('iteams');
 itc.innerHTML=D.teams.map(t=>`<button type="button" class="tchip" data-t="${t[0]}" aria-pressed="false" style="${clubStyle(t[0])}" title="${esc(t[1])}">${t[2]}</button>`).join('');
@@ -556,7 +561,7 @@ ipc.onclick=e=>{const bt=e.target.closest('button');if(!bt)return;istate.pos=+bt
 function panelHtml(pn){
   const asc=!!istate.dir[pn.id];
   const rows=P.filter(p=>(!istate.pos||p.pos===istate.pos)&&(!istate.teams.size||istate.teams.has(p.team))&&(!pkIPlay.set.size||pkIPlay.set.has(p.id))&&pn.pool(p)).sort((a,b)=>((pn.v(b)-pn.v(a))||(b.pts-a.pts))*(asc?-1:1));
-  const body=rows.length?rows.map((p,i)=>{const v=pn.v(p);return `<tr><td class="rk">${i+1}</td><td class="l"><div class="nm"><span>${esc(p.name)}<small>${POS[p.pos]} · £${p.price.toFixed(1)} · ${fmt(p.sel)} % eid</small></span>${badge(p.team)}</div></td><td class="val"${pn.col?` style="color:var(${pn.col(v)})"`:''}${pn.tip?` title="${xpTip(p)}"`:''}>${pn.f(v,p)}</td></tr>`}).join('')
+  const body=rows.length?rows.map((p,i)=>{const v=pn.v(p);return `<tr><td class="rk">${i+1}</td><td class="l"><div class="nm"><span>${esc(p.name)}<small>${POS[p.pos]} · £${p.price.toFixed(1)} · ${fmt(p.sel)} % eid${pn.sub?' · '+pn.sub(p):''}</small></span>${badge(p.team)}</div></td><td class="val"${pn.col?` style="color:var(${pn.col(v)})"`:''}${pn.tip?` title="${xpTip(p)}"`:''}>${pn.f(v,p)}</td></tr>`}).join('')
     :`<tr><td colspan="3" class="empty">${istate.pos===1&&pn.id.startsWith('dc')?'Keepere kan ikke få DC-poeng.':'Ingen spillere passer.'}</td></tr>`;
   return `<div class="panel"><div class="phead"><h3>${pn.t}</h3><button type="button" class="dirbtn" data-p="${pn.id}" title="Bytt mellom høyeste og laveste verdier">${asc?'Bunn ↑':'Topp ↓'}</button></div><p>${pn.d}</p>
    <div class="scroll"><table class="mini"><thead><tr><th>#</th><th class="l">Spiller</th><th>${pn.vl}</th></tr></thead><tbody>${body}</tbody></table></div><div class="cnt">${rows.length} spillere · rull for flere</div></div>`;

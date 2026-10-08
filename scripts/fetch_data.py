@@ -4,6 +4,7 @@
 Bruker kun standardbiblioteket. Kjøres én gang i døgnet, med pause mellom kallene.
 """
 import json, sys, time, urllib.request, urllib.error
+from datetime import datetime, timedelta, timezone
 
 BASE = "https://fantasy.premierleague.com/api/"
 UA = "FPL-Insights/1.0 (uoffisiell hobbyside; henter data en gang i døgnet)"
@@ -47,7 +48,8 @@ def main(out="data.json"):
     def num(x, nd=2):
         return round(float(x), nd) if x not in (None, "") else 0
 
-    players, dct, rw, l5 = [], {}, {}, {}
+    players, dct, rw, l5, pc = [], {}, {}, {}, {}
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
     pool = [e for e in b["elements"]
             if e["minutes"] >= 90 or float(e["selected_by_percent"]) >= 2]
     pool.sort(key=lambda e: e["id"])
@@ -88,6 +90,14 @@ def main(out="data.json"):
             ws += w * m["saves"]
             wst += w * m["starts"]
         l5[str(e["id"])] = last5
+        # prisendring (i tideler av £m): totalt siden sesongstart, og siden for 30 dager siden
+        start = e["now_cost"] - e["cost_change_start"]
+        ref = start
+        for m in hist:
+            ko = m.get("kickoff_time")
+            if ko and datetime.fromisoformat(ko.replace("Z", "+00:00")) <= cutoff:
+                ref = m["value"]
+        pc[str(e["id"])] = [e["cost_change_start"], e["now_cost"] - ref]
         if e["element_type"] != 1:
             dct[str(e["id"])] = [hit, played]
         rw[str(e["id"])] = [round(wm, 1), round(wxg, 3), round(wxa, 3),
@@ -100,7 +110,7 @@ def main(out="data.json"):
         "next": {"id": nxt["id"], "deadline": nxt["deadline_time"]},
         "avg": last.get("average_entry_score") or 0,
         "highest": last.get("highest_score") or 0,
-        "teams": teams, "fx": fx, "players": players, "dct": dct, "rw": rw, "l5": l5,
+        "teams": teams, "fx": fx, "players": players, "dct": dct, "rw": rw, "l5": l5, "pc": pc,
     }
     with open(out, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
