@@ -134,6 +134,7 @@ table.wide5 th.nm1{z-index:3}
 table.wide5 .nm1 .rk1{color:var(--muted);font:500 11px var(--mono);margin-right:6px}
 table.wide5 .nm1 small{display:block;color:var(--muted);font-size:11px}
 table.wide5 .sum{font:600 14px var(--mono);color:var(--pitch)}
+.share{margin-top:10px}.share input{width:100%}.lineup{margin-top:14px}.lineup .hscroll{max-height:none!important}.lineup tr.sep td{font:600 11px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding-top:12px}
 .gwc{display:grid;gap:3px;justify-items:center}.gwc b{font:600 12px var(--mono)}.gwc .fdr{display:inline-flex;gap:2px}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 @media (max-width:980px){.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -355,9 +356,16 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
     <button type="button" class="qbtn" data-q="form" title="Spillerne med høyest form (snitt poeng per kamp siste 30 dager)">Formspillere</button>
     <button type="button" class="qbtn" data-q="fdr" title="Forventede poeng justert for hvor lett kampprogrammet er de neste 5 rundene">Lett kampprogram</button>
   </div>
+  <div class="filters share">
+    <div class="grow"><label for="limp">Lim inn en lenke til et lag (fra «Kopier lenke») for å åpne det her</label>
+      <input id="limp" type="text" placeholder="https://…/?lag=…" autocomplete="off"></div>
+    <button type="button" id="limpb" class="dirbtn">Åpne lag</button>
+    <button type="button" id="lcopy" class="dirbtn" title="Kopierer en lenke som åpner akkurat dette laget for den som mottar den">Kopier lenke</button>
+  </div>
   <div class="lsum" id="lsum"></div>
   <p class="note xpnote">Forventede poeng (xP) kommer fra vår egen modell og bygger på forventede mål og assist (siste kamper teller mest), straffeansvar, motstanderens styrke, hjemme/borte, sjanse for clean sheet, DC-terskel, bonus, redninger og forventet spilletid. Totalen gjelder startelleveren, med kapteinen telt dobbelt.</p>
   <div class="pitch" id="pitch"></div>
+  <div class="panel wide lineup" id="llist"></div>
   <p class="note" id="lmsg"></p>
   <div class="modal" id="lmodal" hidden>
     <div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mtitle">
@@ -887,8 +895,30 @@ renderC();
       </div>
       ${left<-1e-9?`<p class="lwarn">Troppen er £${(-left).toFixed(1)}m over budsjett.</p>`:''}
       ${risk.length?`<p class="lwarn">Usikre: ${risk.map(p=>`${esc(p.name)} (${p.chance!=null?p.chance+' %':stTitle[p.status]})`).join(', ')}</p>`:''}`;
+    const g0=D.next.id;
+    const lrow=(id,i,bn)=>{const p=PBYID[id];return `<tr><td class="nm1"><div class="n1"><span class="nmt">${esc(p.name)}${id===cap&&!bn?' (C)':id===vice&&!bn?' (V)':''}</span></div><small>${badge(p.team)} ${POS[p.pos]} · £${p.price.toFixed(1)}</small></td><td class="sum">${p.xp5s.toFixed(1)}</td>${p.xp5.map(x=>`<td><div class="gwc"><span class="fdr">${x.fl.length?x.fl.map(chip).join(''):'<i class="d3">–</i>'}</span><b>${x.fl.length?x.xp.toFixed(1):'–'}</b></div></td>`).join('')}</tr>`};
+    const ord=[...xi].sort((a,b)=>PBYID[a].pos-PBYID[b].pos||PBYID[b].xp-PBYID[a].xp), bl=bench.filter(x=>x!=null);
+    const tot=ids=>ids.reduce((s,id)=>s+PBYID[id].xp5s,0);
+    document.getElementById('llist').innerHTML=`<div class="phead"><h3>Laget: neste 5 kamper</h3></div><p>Motstander og forventede poeng (xP) per runde for hver spiller i troppen. Σ xP er summen over de fem rundene.</p>`+(sq.length?`<div class="hscroll"><table class="wide5"><thead><tr><th class="nm1">Spiller</th><th class="sum">Σ xP</th>${[0,1,2,3,4].map(i=>`<th>GW${g0+i}</th>`).join('')}</tr></thead><tbody>
+      <tr class="sep"><td colspan="7">Startellever · Σ xP ${tot(xi).toFixed(1)}</td></tr>${ord.map(id=>lrow(id,0,false)).join('')}
+      ${bl.length?`<tr class="sep"><td colspan="7">Benk · Σ xP ${tot(bl).toFixed(1)}</td></tr>${bl.map(id=>lrow(id,0,true)).join('')}`:''}</tbody></table></div>`:'<p class="empty">Legg til spillere for å se kampprogram og forventede poeng.</p>');
     save();
   }
+  // ---- deling via lenke
+  const code=()=>[xi.join('.'),bench.map(x=>x??0).join('.'),cap??0,vice??0,budget].join('_');
+  function load(str){
+    const m=String(str).match(/lag=([0-9._]+)/)||String(str).trim().match(/^([0-9._]+)$/);if(!m)return 'Fant ingen lag i lenken.';
+    const [a,b,c,v,bu]=m[1].split('_');if(b==null)return 'Lenken er ufullstendig.';
+    const ids=t=>(t||'').split('.').map(Number);
+    const nx=[...new Set(ids(a).filter(id=>PBYID[id]))].slice(0,11);
+    const nb=ids(b).map(id=>PBYID[id]&&!nx.includes(id)?id:null).slice(0,4);while(nb.length<4)nb.push(null);
+    xi=nx;bench=nb;cap=nx.includes(+c)?+c:(nx[0]??null);vice=nx.includes(+v)&&+v!==cap?+v:null;budget=Math.max(50,Math.min(150,+bu||100));bIn.value=budget;swapSel=null;return null}
+  const cp=document.getElementById('lcopy');
+  cp.onclick=async()=>{const url=location.origin+location.pathname+'?lag='+code()+'#lag';
+    try{await navigator.clipboard.writeText(url);msg.textContent='Lenken er kopiert. Den som åpner den får akkurat dette laget.'}catch(e){document.getElementById('limp').value=url;msg.textContent='Kunne ikke kopiere automatisk. Lenken ligger i feltet over, kopier den derfra.'}};
+  document.getElementById('limpb').onclick=()=>{const e=load(document.getElementById('limp').value);msg.textContent=e||'Laget er åpnet fra lenken.';if(!e)document.getElementById('limp').value='';render()};
+  const qp=new URLSearchParams(location.search).get('lag');
+  if(qp){const e=load('lag='+qp);if(!e){try{history.replaceState(null,'',location.pathname+'#lag')}catch(_){}}}
   pitch.onclick=e=>{
     const add=e.target.closest('[data-add]');if(add){openM([+add.dataset.add],'xi',null);return}
     const bs=e.target.closest('[data-bench]');if(bs){const i=+bs.dataset.bench;openM(i===0?[1]:[2,3,4],'b'+i,null);return}
