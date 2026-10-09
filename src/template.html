@@ -937,41 +937,61 @@ renderC();
     for(let i=1;i<=a.length;i++){const cur=[i];let mn=i;for(let j=1;j<=b.length;j++){const v=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));cur.push(v);if(v<mn)mn=v}prev=cur;if(mn>max)return max+1}return prev[b.length]}
   // words: [{text,conf,x0,y0,x1,y1}] i bildekoordinater
   function ocrMatch(words){
-    const W=words.map(w=>({...w,c:norm(w.text).replace(/ß/g,'b').replace(/[^a-z]/g,''),cy:(w.y0+w.y1)/2,h:w.y1-w.y0})).filter(w=>w.c.length>=2);
+    const W=words.map(w=>({...w,c:norm(w.text).replace(/ß/g,'b').replace(/@/g,'o').replace(/[^a-z]/g,''),cy:(w.y0+w.y1)/2,h:w.y1-w.y0})).filter(w=>w.c.length>=2);
     const cands=[];
-    W.forEach((w,i)=>{cands.push({c:w.c,y:w.cy,conf:w.conf,used:[i]});
+    W.forEach((w,i)=>{cands.push({c:w.c,y:w.cy,conf:w.conf,used:[i],dots:/[.…]$/.test(w.text)});
       W.forEach((n,j)=>{if(j===i)return;const hh=Math.max(w.h,n.h);
         const same=Math.abs(n.cy-w.cy)<0.6*hh&&n.x0>=w.x1-hh&&n.x0-w.x1<hh*1.5;
         const wrap=n.cy>w.cy&&n.cy-w.cy<2*hh&&Math.abs((n.x0+n.x1)/2-(w.x0+w.x1)/2)<Math.max(w.x1-w.x0,n.x1-n.x0);
-        if(same||wrap)cands.push({c:w.c+n.c,y:w.cy,conf:Math.min(w.conf,n.conf),used:[i,j]})})});
+        if(same||wrap)cands.push({c:w.c+n.c,y:w.cy,conf:Math.min(w.conf,n.conf),used:[i,j],dots:/[.…]$/.test(n.text)})})});
     const hits=[];
-    for(const cd of cands){if(cd.c.length<3)continue;let best=null;
-      for(const {p,k} of KEYS){const max=cd.conf<50?0:k.length>=9?2:k.length>=6?1:0;const d=lev(cd.c,k,max);
-        if(d<=max&&(!best||d<best.d||(d===best.d&&p.sel>best.p.sel)))best={p,d}}
+    for(const cd of cands){if(cd.c.length<3||cd.conf<45||(cd.c.length<=4&&cd.conf<70))continue;let best=null;
+      for(const {p,k} of KEYS){const max=cd.conf<50?0:k.length>=9?2:k.length>=6?1:0;let d=lev(cd.c,k,max);
+        if(d>max&&k.length>cd.c.length&&k.startsWith(cd.c)&&(cd.c.length>=6||(cd.dots&&cd.c.length>=4)))d=0.5; // avkortet navn («Verbrugg…»)
+        if(d<=max+0.5&&(d<=max||d===0.5)&&(!best||d<best.d||(d===best.d&&p.sel>best.p.sel)))best={p,d}}
       if(best)hits.push({...cd,...best})}
     hits.sort((a,b)=>a.d-b.d||b.c.length-a.c.length);
     const usedW=new Set(),got=new Map();
     for(const h of hits){if(got.has(h.p.id)||h.used.some(u=>usedW.has(u)))continue;h.used.forEach(u=>usedW.add(u));got.set(h.p.id,h)}
     // maks 15, innenfor posisjonsgrenser
     const cnts={1:0,2:0,3:0,4:0},res=[];
-    for(const h of [...got.values()].sort((a,b)=>a.d-b.d)){if(cnts[h.p.pos]>=SQ[h.p.pos])continue;cnts[h.p.pos]++;res.push(h)}
+    for(const h of [...got.values()].sort((a,b)=>a.d-b.d||b.conf-a.conf)){if(cnts[h.p.pos]>=SQ[h.p.pos])continue;cnts[h.p.pos]++;res.push(h)}
     return res}
   function ocrApply(words){
     const res=ocrMatch(words);if(!res.length)return 'Fant ingen spillere i bildet. Prøv et skarpere skjermbilde av hele banen og benken.';
     const ids=res.map(h=>h.p.id);let bn=null;
-    if(res.length===15){const low=[...res].sort((a,b)=>b.y-a.y).slice(0,4);if(low.filter(h=>h.p.pos===1).length===1)bn=low.map(h=>h.p.id)}
+    const gk=words.find(w=>/^gkp$/i.test(w.text.replace(/[^A-Za-z]/g,'')));
+    if(gk){const b=res.filter(h=>h.y>gk.y1-4);if(b.length&&b.filter(h=>h.p.pos===1).length<=1)bn=b.map(h=>h.p.id)}
+    if(!bn&&res.length===15){const low=[...res].sort((a,b)=>b.y-a.y).slice(0,4);if(low.filter(h=>h.p.pos===1).length===1)bn=low.map(h=>h.p.id)}
     let x;
-    if(bn){x=ids.filter(id=>!bn.includes(id));bench=[bn.find(id=>PBYID[id].pos===1),...bn.filter(id=>PBYID[id].pos!==1)]}
+    if(bn){x=ids.filter(id=>!bn.includes(id));bench=[bn.find(id=>PBYID[id].pos===1)??null,...bn.filter(id=>PBYID[id].pos!==1)].concat([null,null,null,null]).slice(0,4)}
     else{x=bestXI(ids,p=>p.xp);const b=ids.filter(id=>!x.includes(id));bench=[b.find(id=>PBYID[id].pos===1)??null,...b.filter(id=>PBYID[id].pos!==1)].concat([null,null,null,null]).slice(0,4)}
     xi=x;
     const byXp=[...xi].sort((a,b)=>PBYID[b].xp-PBYID[a].xp);cap=byXp[0]??null;vice=byXp[1]??null;swapSel=null;
     return `Fant ${res.length} av 15 spillere. Kapteinen er satt til spilleren med høyest xP${bn?'':' og startelleveren er valgt etter xP'}. Sjekk at alt stemmer og rett opp det som mangler.`}
   window.fplOcr={ocrMatch,ocrApply:w=>{const m=ocrApply(w);render();return m}};
   const loadTess=()=>window.Tesseract?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)});
+  // Hele bildet i ett pass overser ofte navn på fargede drakter, så vi leser det i overlappende fliser.
+  async function ocrImage(file,onProg){
+    const bmp=await createImageBitmap(file),sc=1170/bmp.width,W=Math.round(bmp.width*sc),H=Math.round(bmp.height*sc);
+    const cv=document.createElement('canvas');cv.width=W;cv.height=H;const cx=cv.getContext('2d',{willReadFrequently:true});cx.drawImage(bmp,0,0,W,H);
+    const w=await Tesseract.createWorker('eng');await w.setParameters({tessedit_pageseg_mode:'11'});
+    const tw=480,th=200,sx=300,sy=100,tiles=[];
+    for(let y=0;y<=Math.max(0,H-th);y+=sy)for(let x=0;x<=Math.max(0,W-tw);x+=sx){
+      const d=cx.getImageData(x,y,Math.min(tw,W-x),Math.min(th,H-y)).data;let wh=0;
+      for(let i=0;i<d.length;i+=4)if(d[i]>215&&d[i+1]>215&&d[i+2]>215)wh++;
+      if(wh/(d.length/4)>=0.06)tiles.push([x,y])}
+    const words=[];let n=0;
+    for(const [x,y] of tiles){
+      const t=document.createElement('canvas'),pad=40;t.width=tw+2*pad;t.height=th+2*pad;const tc=t.getContext('2d');
+      tc.fillStyle='#fff';tc.fillRect(0,0,t.width,t.height);tc.filter='grayscale(1)';tc.drawImage(cv,x,y,tw,th,pad,pad,tw,th);
+      const {data}=await w.recognize(t);
+      for(const q of data.words||[])words.push({text:q.text,conf:q.confidence,x0:q.bbox.x0-pad+x,x1:q.bbox.x1-pad+x,y0:q.bbox.y0-pad+y,y1:q.bbox.y1-pad+y});
+      onProg(++n,tiles.length)}
+    await w.terminate();return words}
   document.getElementById('limg').onchange=async e=>{const f=e.target.files[0];if(!f)return;
     msg.textContent='Leser bildet … første gang kan det ta et halvt minutt.';
-    try{await loadTess();const w=await Tesseract.createWorker('eng');const {data}=await w.recognize(f);await w.terminate();
-      const words=(data.words||[]).map(t=>({text:t.text,conf:t.confidence,x0:t.bbox.x0,y0:t.bbox.y0,x1:t.bbox.x1,y1:t.bbox.y1}));
+    try{await loadTess();const words=await ocrImage(f,(a,b)=>msg.textContent=`Leser bildet … ${a} av ${b}`);
       msg.textContent=ocrApply(words);render()
     }catch(err){msg.textContent='Kunne ikke lese bildet akkurat nå. Sjekk internettforbindelsen, eller bygg laget manuelt.'}
     e.target.value=''};
