@@ -530,11 +530,11 @@ function makePicker(pid,opts,onChange){
 const state={pos:0,team:0,maxp:16,minm:90,q:'',sort:'pts',asc:false};
 const COLS=[
  {k:'name',l:'Spiller',cls:'l',t:'Spillernavn og klubb'},{k:'pos',l:'Pos',cls:'l',t:'Posisjon: MÅL keeper, FOR forsvar, MID midtbane, ANG angrep'},
- {k:'price',l:'Pris',t:'Pris i FPL (millioner pund)'},{k:'pts',l:'Poeng',t:'Totale FPL-poeng denne sesongen'},{k:'gw',l:'GW'+D.gw,t:'FPL-poeng i gameweek '+D.gw},
+ {k:'price',l:'Pris',t:'Pris i FPL (millioner pund)'},{k:'pts',l:'Poeng',t:'Totale FPL-poeng denne sesongen'},{k:'rel',l:'Rel. xGI',t:'Relativ prestasjon til xGI: (målpoeng − xGI) / xGI. Positiv = overpresterer. N/A når xGI er under 0,3'},{k:'gw',l:'GW'+D.gw,t:'FPL-poeng i gameweek '+D.gw},
  {k:'form',l:'Form',t:'Snitt FPL-poeng per kamp de siste 30 dagene'},{k:'xp',l:'xP GW'+D.next.id,t:'Forventede poeng i GW'+D.next.id+' fra vår egen modell: forventede mål og assist justert for motstander og straffeansvar, sjanse for clean sheet, DC-terskel, bonus og forventede minutter'},{k:'ppm',l:'P/£m',t:'Poeng per million: totalpoeng delt på pris'},
  {k:'sel',l:'Eid %',t:'Andel FPL-lag som eier spilleren'},{k:'min',l:'Min',t:'Spilte minutter'},{k:'g',l:'Mål',t:'Mål'},{k:'a',l:'Ass',t:'Målgivende pasninger (assist)'},
  {k:'xg',l:'xG',t:'Forventede mål (expected goals)'},{k:'xa',l:'xA',t:'Forventede assist (expected assists)'},{k:'xgi',l:'xGI',t:'Forventet måldeltakelse: xG + xA'},
- {k:'gi',l:'Målpoeng',t:'Målpoeng: mål + assist'},{k:'rel',l:'Rel. xGI',t:'Relativ prestasjon til xGI: (målpoeng − xGI) / xGI. Positiv = overpresterer. N/A når xGI er under 0,3'},
+ {k:'gi',l:'Målpoeng',t:'Målpoeng: mål + assist'},
  {k:'cs',l:'CS',t:'Clean sheets (kamper uten baklengsmål)'},{k:'dc90',l:'DC/90',t:'Defensive contributions per 90 minutter'},
  {k:'bonus',l:'Bonus',t:'Bonuspoeng'},{k:'net',l:'Netto overg.',t:'Netto overganger inn minus ut før neste frist'},{k:'fdr',l:'Neste 5',cls:'l',t:'Kampvanskelighet (FDR) for de neste fem kampene. H = hjemme'}];
 const pc=document.getElementById('posChips');
@@ -559,9 +559,9 @@ function renderP(){
   pt.querySelectorAll('th').forEach(th=>{th.classList.toggle('on',th.dataset.k===state.sort);th.classList.toggle('asc',state.asc)});
   pt.querySelector('tbody').innerHTML=rows.length?rows.map(p=>`<tr>
    <td class="name club" style="${clubStyle(p.team)}"><div class="nm"><div><span class="st ${p.status}" title="${stTitle[p.status]}${p.chance!=null?' – '+p.chance+'% sjanse':''}"></span>${esc(p.name)}<small>${TEAMS[p.team].name}</small></div>${badge(p.team)}</div></td>
-   <td class="l"><span class="pos">${POS[p.pos]}</span></td><td>£${p.price.toFixed(1)}</td><td class="num-strong">${p.pts}</td><td>${p.gw}</td>
+   <td class="l"><span class="pos">${POS[p.pos]}</span></td><td>£${p.price.toFixed(1)}</td><td class="num-strong">${p.pts}</td><td>${relHtml(p.rel)}</td><td>${p.gw}</td>
    <td>${fmt(p.form)}</td><td class="num-strong" title="${xpTip(p)}">${fmt(p.xp)}</td><td>${fmt(p.ppm)}</td><td>${fmt(p.sel)}</td><td>${p.min}</td><td>${p.g}</td><td>${p.a}</td>
-   <td>${fmt(p.xg,2)}</td><td>${fmt(p.xa,2)}</td><td>${fmt(p.xgi,2)}</td><td class="num-strong">${p.gi}</td><td>${relHtml(p.rel)}</td><td>${p.cs}</td><td>${fmt(p.dc90)}</td><td>${p.bonus}</td>
+   <td>${fmt(p.xg,2)}</td><td>${fmt(p.xa,2)}</td><td>${fmt(p.xgi,2)}</td><td class="num-strong">${p.gi}</td><td>${p.cs}</td><td>${fmt(p.dc90)}</td><td>${p.bonus}</td>
    <td style="color:var(${p.net>0?'--good':'--bad'})">${p.net>0?'+':''}${p.net.toLocaleString('nb-NO')}</td><td class="l">${fdrHtml(p.team)}</td></tr>`).join('')
    :`<tr><td colspan="${COLS.length}" class="empty">Ingen spillere passer filtrene. Prøv å senke minutt-kravet eller øke makspris.</td></tr>`;
   document.getElementById('pcount').textContent=`${rows.length} spillere vist`;
@@ -664,9 +664,9 @@ const CL=D.teams.map(t=>{const ps=P.filter(p=>p.team===t[0]);const s=k=>ps.reduc
   const best=[...ps].sort((a,b)=>b.pts-a.pts)[0];
   const g=s('g'),a=s('a'),xgi=s('xg')+s('xa');
   return {id:t[0],name:t[1],pts:s('pts'),g,a,gi:g+a,xg:s('xg'),xa:s('xa'),xgi,rel:xgi>=0.3?(g+a-xgi)/xgi*100:null,cs:gk?gk.cs:0,gc:gk?gk.gc:0,xgc:gk?gk.xgc:0,dc90:s('dc')/Math.max(1,Math.round(Math.max(...ps.map(p=>p.min))/90)),best,fdr:fdrAvg(t[0])}});
-const CC=[{k:'name',l:'Klubb',cls:'l',t:'Klubbnavn. Klikk for å se spillerne'},{k:'pts',l:'FPL-poeng',t:'Sum FPL-poeng for klubbens spillere'},
+const CC=[{k:'name',l:'Klubb',cls:'l',t:'Klubbnavn. Klikk for å se spillerne'},{k:'pts',l:'FPL-poeng',t:'Sum FPL-poeng for klubbens spillere'},{k:'rel',l:'Rel. xGI',t:'Relativ prestasjon til xGI: (målpoeng − xGI) / xGI. Positiv = overpresterer. N/A når xGI er under 0,3'},
  {k:'g',l:'Mål',t:'Mål'},{k:'a',l:'Ass',t:'Målgivende pasninger (assist)'},{k:'xg',l:'xG',t:'Forventede mål (expected goals)'},{k:'xa',l:'xA',t:'Forventede assist (expected assists)'},
- {k:'xgi',l:'xGI',t:'Forventet måldeltakelse: xG + xA'},{k:'gi',l:'Målpoeng',t:'Målpoeng: mål + assist'},{k:'rel',l:'Rel. xGI',t:'Relativ prestasjon til xGI: (målpoeng − xGI) / xGI. Positiv = overpresterer. N/A når xGI er under 0,3'},
+ {k:'xgi',l:'xGI',t:'Forventet måldeltakelse: xG + xA'},{k:'gi',l:'Målpoeng',t:'Målpoeng: mål + assist'},
  {k:'gc',l:'Innsluppet',t:'Baklengsmål'},{k:'xgc',l:'xGC',t:'Forventede baklengsmål (expected goals conceded)'},{k:'cs',l:'CS',t:'Clean sheets (kamper uten baklengsmål)'},
  {k:'dc90',l:'DC/90',t:'Lagets defensive contributions per kamp (90 minutter)'},{k:'best',l:'Toppscorer (FPL)',cls:'l',t:'Klubbens spiller med flest FPL-poeng'},
  {k:'fdr',l:'Snitt FDR',t:'Snitt kampvanskelighet neste fem kamper (1 lett – 5 svært vanskelig)'},{k:'nx',l:'Neste 5',cls:'l',t:'Kampvanskelighet (FDR) for de neste fem kampene. H = hjemme'}];
@@ -678,7 +678,7 @@ function renderC(){const v=c=>cs.sort==='best'?c.best.pts:cs.sort==='name'?c.nam
   const rows=CL.filter(c=>!pkClub.set.size||pkClub.set.has(c.id)).sort((a,b)=>{const x=v(a),y=v(b);return (x<y?-1:x>y?1:0)*(cs.asc?1:-1)});
   ct.querySelectorAll('th').forEach(th=>{th.classList.toggle('on',th.dataset.k===cs.sort);th.classList.toggle('asc',cs.asc)});
   ct.querySelector('tbody').innerHTML=rows.map(c=>`<tr><td class="l club" style="${clubStyle(c.id)}"><div class="nm"><button class="linkbtn" data-team="${c.id}">${esc(c.name)}</button>${badge(c.id)}</div></td>
-   <td class="num-strong">${c.pts}</td><td>${c.g}</td><td>${c.a}</td><td>${fmt(c.xg)}</td><td>${fmt(c.xa)}</td><td>${fmt(c.xgi)}</td><td class="num-strong">${c.gi}</td><td>${relHtml(c.rel)}</td><td>${c.gc}</td><td>${fmt(c.xgc)}</td><td>${c.cs}</td><td>${fmt(c.dc90)}</td>
+   <td class="num-strong">${c.pts}</td><td>${relHtml(c.rel)}</td><td>${c.g}</td><td>${c.a}</td><td>${fmt(c.xg)}</td><td>${fmt(c.xa)}</td><td>${fmt(c.xgi)}</td><td class="num-strong">${c.gi}</td><td>${c.gc}</td><td>${fmt(c.xgc)}</td><td>${c.cs}</td><td>${fmt(c.dc90)}</td>
    <td class="l">${esc(c.best.name)} <span style="color:var(--muted)">${c.best.pts}</span></td><td>${fmt(c.fdr,2)}</td><td class="l">${fdrHtml(c.id)}</td></tr>`).join('');}
 ct.onclick=e=>{const b=e.target.closest('[data-team]');if(!b)return;pkPClub.only(+b.dataset.team);pkPPlay.clear();state.minm=0;minm.value=0;renderP();showTab('spillere');window.scrollTo(0,0)};
 renderC();
