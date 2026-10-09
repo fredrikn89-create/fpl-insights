@@ -356,11 +356,6 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
     <button type="button" class="qbtn" data-q="form" title="Spillerne med høyest form (snitt poeng per kamp siste 30 dager)">Formspillere</button>
     <button type="button" class="qbtn" data-q="fdr" title="Forventede poeng justert for hvor lett kampprogrammet er de neste 5 rundene">Lett kampprogram</button>
   </div>
-  <div class="filters share" id="lfpl" hidden>
-    <div class="grow"><label for="lfid">Hent ditt eget FPL-lag: lim inn lenken til laget ditt (fantasy.premierleague.com/entry/…) eller lag-ID</label>
-      <input id="lfid" type="text" inputmode="numeric" placeholder="https://fantasy.premierleague.com/entry/1234567/event/6" autocomplete="off"></div>
-    <button type="button" id="lfb" class="dirbtn">Hent laget mitt</button>
-  </div>
   <div class="filters share">
     <div class="grow"><label for="limg">Hent laget fra et skjermbilde: last opp et bilde av «Pick Team» i FPL-appen, så leser siden navnene. Best resultat: fanen «Pitch», hele banen og benken i ett bilde, uten at noe dekker spillerne</label>
       <input id="limg" type="file" accept="image/*"></div>
@@ -910,21 +905,6 @@ renderC();
       ${bl.length?`<tr class="sep"><td colspan="7">Benk · Σ xP ${tot(bl).toFixed(1)}</td></tr>${bl.map(id=>lrow(id,0,true)).join('')}`:''}</tbody></table></div>`:'<p class="empty">Legg til spillere for å se kampprogram og forventede poeng.</p>');
     save();
   }
-  // ---- import av eget FPL-lag via proxy (se worker/fpl-proxy.js)
-  const FPL_PROXY='';
-  if(FPL_PROXY){document.getElementById('lfpl').hidden=false;
-    document.getElementById('lfb').onclick=async()=>{
-      const m=document.getElementById('lfid').value.match(/entry\/(\d+)/)||document.getElementById('lfid').value.trim().match(/^(\d{1,9})$/);
-      if(!m){msg.textContent='Fant ingen lag-ID. Lim inn lenken til laget ditt fra FPL (den inneholder «entry/» og et tall).';return}
-      msg.textContent='Henter laget …';
-      try{const r=await fetch(FPL_PROXY+'?entry='+m[1]);const d=await r.json();
-        if(!r.ok){msg.textContent=(d.error||'Noe gikk galt')+'.';return}
-        const pk=d.picks.filter(x=>PBYID[x.e]).sort((a,b)=>a.pos-b.pos);
-        xi=pk.filter(x=>x.pos<=11).map(x=>x.e);bench=pk.filter(x=>x.pos>11).map(x=>x.e);while(bench.length<4)bench.push(null);
-        cap=(pk.find(x=>x.c)||{}).e;cap=xi.includes(cap)?cap:(xi[0]??null);vice=(pk.find(x=>x.v)||{}).e;vice=xi.includes(vice)&&vice!==cap?vice:null;
-        budget=Math.max(50,Math.min(150,d.value||100));bIn.value=budget;swapSel=null;
-        msg.textContent=`Hentet «${d.name}» (valg fra GW${d.gw}). Troppen kan være endret siden, sjekk at den stemmer.`;render()
-      }catch(e){msg.textContent='Kunne ikke hente laget akkurat nå. Prøv igjen senere, eller bygg laget manuelt.'}}}
   // ---- lagimport fra skjermbilde (OCR i nettleseren med Tesseract.js, bildet forlater aldri enheten)
   const KEYS=P.map(p=>({p,k:norm(p.name).replace(/ß/g,'b').replace(/[^a-z]/g,'')})).filter(x=>x.k.length>=3);
   function lev(a,b,max){if(Math.abs(a.length-b.length)>max)return max+1;let prev=Array.from({length:b.length+1},(_,i)=>i);
@@ -997,17 +977,6 @@ renderC();
       msg.textContent=ocrApply(words);render()
     }catch(err){msg.textContent='Kunne ikke lese bildet akkurat nå. Sjekk internettforbindelsen, eller bygg laget manuelt.'}
     e.target.value=''};
-  // ---- deling via lenke
-  const code=()=>[xi.join('.'),bench.map(x=>x??0).join('.'),cap??0,vice??0,budget].join('_');
-  function load(str){
-    const m=String(str).match(/lag=([0-9._]+)/)||String(str).trim().match(/^([0-9._]+)$/);if(!m)return /premierleague\.com/i.test(str)?'Dette er en lenke til FPL-laget ditt. Den kan ikke leses her ennå. Last opp et skjermbilde av laget i feltet over i stedet.':'Fant ingen lag i lenken. Her fungerer bare lenker laget med «Kopier lenke» i denne lagbyggeren.';
-    const [a,b,c,v,bu]=m[1].split('_');if(b==null)return 'Lenken er ufullstendig.';
-    const ids=t=>(t||'').split('.').map(Number);
-    const nx=[...new Set(ids(a).filter(id=>PBYID[id]))].slice(0,11);
-    const nb=ids(b).map(id=>PBYID[id]&&!nx.includes(id)?id:null).slice(0,4);while(nb.length<4)nb.push(null);
-    xi=nx;bench=nb;cap=nx.includes(+c)?+c:(nx[0]??null);vice=nx.includes(+v)&&+v!==cap?+v:null;budget=Math.max(50,Math.min(150,+bu||100));bIn.value=budget;swapSel=null;return null}
-  const qp=new URLSearchParams(location.search).get('lag');
-  if(qp){const e=load('lag='+qp);if(!e){try{history.replaceState(null,'',location.pathname+'#lag')}catch(_){}}}
   pitch.onclick=e=>{
     const add=e.target.closest('[data-add]');if(add){openM([+add.dataset.add],'xi',null);return}
     const bs=e.target.closest('[data-bench]');if(bs){const i=+bs.dataset.bench;openM(i===0?[1]:[2,3,4],'b'+i,null);return}
