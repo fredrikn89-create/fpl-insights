@@ -356,6 +356,11 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
     <button type="button" class="qbtn" data-q="form" title="Spillerne med høyest form (snitt poeng per kamp siste 30 dager)">Formspillere</button>
     <button type="button" class="qbtn" data-q="fdr" title="Forventede poeng justert for hvor lett kampprogrammet er de neste 5 rundene">Lett kampprogram</button>
   </div>
+  <div class="filters share" id="lfpl" hidden>
+    <div class="grow"><label for="lfid">Hent ditt eget FPL-lag: lim inn lenken til laget ditt (fantasy.premierleague.com/entry/…) eller lag-ID</label>
+      <input id="lfid" type="text" inputmode="numeric" placeholder="https://fantasy.premierleague.com/entry/1234567/event/6" autocomplete="off"></div>
+    <button type="button" id="lfb" class="dirbtn">Hent laget mitt</button>
+  </div>
   <div class="filters share">
     <div class="grow"><label for="limp">Lim inn en lenke til et lag (fra «Kopier lenke») for å åpne det her</label>
       <input id="limp" type="text" placeholder="https://…/?lag=…" autocomplete="off"></div>
@@ -904,6 +909,21 @@ renderC();
       ${bl.length?`<tr class="sep"><td colspan="7">Benk · Σ xP ${tot(bl).toFixed(1)}</td></tr>${bl.map(id=>lrow(id,0,true)).join('')}`:''}</tbody></table></div>`:'<p class="empty">Legg til spillere for å se kampprogram og forventede poeng.</p>');
     save();
   }
+  // ---- import av eget FPL-lag via proxy (se worker/fpl-proxy.js)
+  const FPL_PROXY='';
+  if(FPL_PROXY){document.getElementById('lfpl').hidden=false;
+    document.getElementById('lfb').onclick=async()=>{
+      const m=document.getElementById('lfid').value.match(/entry\/(\d+)/)||document.getElementById('lfid').value.trim().match(/^(\d{1,9})$/);
+      if(!m){msg.textContent='Fant ingen lag-ID. Lim inn lenken til laget ditt fra FPL (den inneholder «entry/» og et tall).';return}
+      msg.textContent='Henter laget …';
+      try{const r=await fetch(FPL_PROXY+'?entry='+m[1]);const d=await r.json();
+        if(!r.ok){msg.textContent=(d.error||'Noe gikk galt')+'.';return}
+        const pk=d.picks.filter(x=>PBYID[x.e]).sort((a,b)=>a.pos-b.pos);
+        xi=pk.filter(x=>x.pos<=11).map(x=>x.e);bench=pk.filter(x=>x.pos>11).map(x=>x.e);while(bench.length<4)bench.push(null);
+        cap=(pk.find(x=>x.c)||{}).e;cap=xi.includes(cap)?cap:(xi[0]??null);vice=(pk.find(x=>x.v)||{}).e;vice=xi.includes(vice)&&vice!==cap?vice:null;
+        budget=Math.max(50,Math.min(150,d.value||100));bIn.value=budget;swapSel=null;
+        msg.textContent=`Hentet «${d.name}» (valg fra GW${d.gw}). Troppen kan være endret siden, sjekk at den stemmer.`;render()
+      }catch(e){msg.textContent='Kunne ikke hente laget akkurat nå. Prøv igjen senere, eller bygg laget manuelt.'}}}
   // ---- deling via lenke
   const code=()=>[xi.join('.'),bench.map(x=>x??0).join('.'),cap??0,vice??0,budget].join('_');
   function load(str){
