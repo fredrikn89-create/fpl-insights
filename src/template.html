@@ -913,13 +913,15 @@ renderC();
   function ocrMatch(words){
     const W=words.map(w=>({...w,c:norm(w.text).replace(/ß/g,'b').replace(/@/g,'o').replace(/[^a-z]/g,''),cy:(w.y0+w.y1)/2,h:w.y1-w.y0})).filter(w=>w.c.length>=2);
     const cands=[];
-    W.forEach((w,i)=>{cands.push({c:w.c,y:w.cy,conf:w.conf,used:[i],dots:/[.…]$/.test(w.text)});
+    W.forEach((w,i)=>{cands.push({c:w.c,y:w.cy,conf:w.conf,used:[i],dots:/[.…]$/.test(w.text),fx:words.some(n=>/\([HAB]\)?|^[HAB]\)$/.test(n.text)&&(n.y0+n.y1)/2>w.cy&&(n.y0+n.y1)/2-w.cy<2.6*Math.max(w.h,n.y1-n.y0)&&Math.abs((n.x0+n.x1)/2-(w.x0+w.x1)/2)<1.2*Math.max(w.x1-w.x0,n.x1-n.x0))});
       W.forEach((n,j)=>{if(j===i)return;const hh=Math.max(w.h,n.h);
         const same=Math.abs(n.cy-w.cy)<0.6*hh&&n.x0>=w.x1-hh&&n.x0-w.x1<hh*1.5;
         const wrap=n.cy>w.cy&&n.cy-w.cy<2*hh&&Math.abs((n.x0+n.x1)/2-(w.x0+w.x1)/2)<Math.max(w.x1-w.x0,n.x1-n.x0);
         if(same||wrap)cands.push({c:w.c+n.c,y:w.cy,conf:Math.min(w.conf,n.conf),used:[i,j],dots:/[.…]$/.test(n.text)})})});
     const hits=[];
-    for(const cd of cands){if(cd.c.length<3||cd.conf<45||(cd.c.length<=4&&cd.conf<70))continue;let best=null;
+    for(const cd of cands){if(cd.c.length<3||cd.conf<45||(cd.c.length<=4&&cd.conf<70))continue;
+      if(cd.c.length<=5&&!cd.fx)continue; // korte navn kreves med «(H)/(A)»-linjen rett under, ellers er det oftest støy
+      let best=null;
       for(const {p,k} of KEYS){const max=cd.conf<50?0:k.length>=9?2:k.length>=6?1:0;let d=lev(cd.c,k,max);
         if(d>max&&k.length>cd.c.length&&k.startsWith(cd.c)&&(cd.c.length>=6||(cd.dots&&cd.c.length>=4)))d=0.5; // avkortet navn («Verbrugg…»)
         if(d<=max+0.5&&(d<=max||d===0.5)&&(!best||d<best.d||(d===best.d&&p.sel>best.p.sel)))best={p,d}}
