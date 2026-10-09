@@ -915,13 +915,13 @@ renderC();
   function ocrMatch(words){
     const W=words.map(w=>({...w,c:norm(fixDigits(w.text)).replace(/ß/g,'b').replace(/[^a-z]/g,''),cy:(w.y0+w.y1)/2,h:w.y1-w.y0})).filter(w=>w.c.length>=2);
     const cands=[];
-    W.forEach((w,i)=>{cands.push({c:w.c,y:w.cy,conf:w.conf,used:[i],dots:/[.…]$/.test(w.text),fx:words.some(n=>/\([HAB]\)?|^[HAB]\)$|^[£€$]?\d{1,2}[.,]\d$/.test(n.text)&&(n.y0+n.y1)/2>w.cy&&(n.y0+n.y1)/2-w.cy<2.6*Math.max(w.h,n.y1-n.y0)&&Math.abs((n.x0+n.x1)/2-(w.x0+w.x1)/2)<1.2*Math.max(w.x1-w.x0,n.x1-n.x0))});
+    W.forEach((w,i)=>{cands.push({c:w.c,y:w.cy,x0:w.x0,x1:w.x1,hh:w.h,conf:w.conf,used:[i],cap:/^[A-ZÀ-ÖØ-Þ@]/.test(w.text),dots:/[.…]$/.test(w.text),fx:words.some(n=>/\([HAB]\)?|^[HAB]\)$/.test(n.text)&&(n.y0+n.y1)/2>w.cy&&(n.y0+n.y1)/2-w.cy<2.6*Math.max(w.h,n.y1-n.y0)&&Math.abs((n.x0+n.x1)/2-(w.x0+w.x1)/2)<1.2*Math.max(w.x1-w.x0,n.x1-n.x0))});
       W.forEach((n,j)=>{if(j===i)return;const hh=Math.max(w.h,n.h);
         const same=Math.abs(n.cy-w.cy)<0.6*hh&&n.x0>=w.x1-hh&&n.x0-w.x1<hh*1.5;
         const wrap=n.cy>w.cy&&n.cy-w.cy<2*hh&&Math.abs((n.x0+n.x1)/2-(w.x0+w.x1)/2)<Math.max(w.x1-w.x0,n.x1-n.x0);
-        if(same||wrap)cands.push({c:w.c+n.c,y:w.cy,conf:Math.min(w.conf,n.conf),used:[i,j],dots:/[.…]$/.test(n.text)})})});
+        if(same||wrap)cands.push({c:w.c+n.c,y:w.cy,x0:Math.min(w.x0,n.x0),x1:Math.max(w.x1,n.x1),hh:hh,conf:Math.min(w.conf,n.conf),used:[i,j],cap:/^[A-ZÀ-ÖØ-Þ@]/.test(w.text),dots:/[.…]$/.test(n.text)})})});
     const hits=[];
-    for(const cd of cands){if(cd.c.length<3||cd.conf<45||(cd.c.length<=4&&cd.conf<70))continue;
+    for(const cd of cands){if(!cd.cap||cd.c.length<3||cd.conf<45||(cd.c.length<=4&&cd.conf<70))continue;
       if(cd.c.length<=5&&!cd.fx)continue; // korte navn kreves med «(H)/(A)»-linjen rett under, ellers er det oftest støy
       let best=null;
       for(const {p,k} of KEYS){const max=cd.conf<50?0:k.length>=9?2:k.length>=6?1:(cd.fx&&cd.conf>=60&&k.length>=4)?1:0;let d=lev(cd.c,k,max);
@@ -930,9 +930,11 @@ renderC();
       if(best)hits.push({...cd,...best})}
     hits.sort((a,b)=>a.d-b.d||b.c.length-a.c.length);
     const usedW=new Set(),got=new Map();
-    for(const h of hits){if(got.has(h.p.id)||h.used.some(u=>usedW.has(u)))continue;h.used.forEach(u=>usedW.add(u));got.set(h.p.id,h)}
+    const near=(a,b)=>Math.abs(a.y-b.y)<0.8*Math.max(a.hh,b.hh)&&a.x0<b.x1+0.4*a.hh&&a.x1>b.x0-0.4*a.hh; // samme etikett: andre ord på samme linje er rester av samme navn
+    const clash=h=>[...got.values()].some(g=>near(g,h));
+    for(const h of hits){if(got.has(h.p.id)||h.used.some(u=>usedW.has(u))||clash(h))continue;h.used.forEach(u=>usedW.add(u));got.set(h.p.id,h)}
     // trinn 2: ord med pris/kamplinje rett under er nesten sikkert navn, så vi tolererer flere lesefeil der
-    for(const cd of cands){if(cd.used.length>1||!cd.fx||cd.c.length<4||cd.conf<35||cd.used.some(u=>usedW.has(u)))continue;
+    for(const cd of cands){if(!cd.cap||cd.used.length>1||!cd.fx||cd.c.length<4||cd.conf<35||cd.used.some(u=>usedW.has(u))||clash(cd))continue;
       let best=null;const max=Math.max(1,Math.floor(cd.c.length/3));
       for(const {p,k} of KEYS){if(got.has(p.id))continue;const d=lev(cd.c,k,max);if(d<=max&&(!best||d<best.d||(d===best.d&&p.sel>best.p.sel)))best={p,d}}
       if(best){cd.used.forEach(u=>usedW.add(u));got.set(best.p.id,{...cd,...best,d:best.d+1})}}
@@ -968,7 +970,8 @@ renderC();
     const cv=document.createElement('canvas');cv.width=W;cv.height=H;const cx=cv.getContext('2d',{willReadFrequently:true});cx.drawImage(bmp,0,0,W,H);
     const w=await Tesseract.createWorker('eng');await w.setParameters({tessedit_pageseg_mode:'11'});
     const tw=480,th=200,sx=300,sy=100,tiles=[];
-    for(let y=0;y<=Math.max(0,H-th);y+=sy)for(let x=0;x<=Math.max(0,W-tw);x+=sx){
+    const xs=[],ys=[];for(let x=0;x<W-tw;x+=sx)xs.push(x);xs.push(Math.max(0,W-tw));for(let y=0;y<H-th;y+=sy)ys.push(y);ys.push(Math.max(0,H-th));
+    for(const y of ys)for(const x of xs){
       const d=cx.getImageData(x,y,Math.min(tw,W-x),Math.min(th,H-y)).data;let wh=0;
       for(let i=0;i<d.length;i+=4)if(d[i]>215&&d[i+1]>215&&d[i+2]>215)wh++;
       if(wh/(d.length/4)>=0.06)tiles.push([x,y])}
@@ -980,8 +983,10 @@ renderC();
         const {data}=await w.recognize(t);
         for(const q of data.words||[])words.push({text:q.text,conf:q.confidence,x0:(q.bbox.x0-pad)/sc2+x,x1:(q.bbox.x1-pad)/sc2+x,y0:(q.bbox.y0-pad)/sc2+y,y1:(q.bbox.y1-pad)/sc2+y});
         onProg(++n,total)}};
+    {const t=document.createElement('canvas');t.width=W;t.height=H;const tc=t.getContext('2d');tc.filter='grayscale(1)';tc.drawImage(cv,0,0);
+      const {data}=await w.recognize(t);for(const q of data.words||[])words.push({text:q.text,conf:q.confidence,x0:q.bbox.x0,x1:q.bbox.x1,y0:q.bbox.y0,y1:q.bbox.y1});onProg(0,total)}
     await pass(1,'grayscale(1)');
-    if(ocrMatch(words).length<15){total=tiles.length*2;await pass(1.6,'grayscale(1) contrast(1.6)')}
+    if(ocrMatch(words).filter(h=>h.d<=0.5).length<15){total=tiles.length*2;await pass(1.6,'grayscale(1) contrast(1.6)')}
     await w.terminate();return words}
   document.getElementById('limg').onchange=async e=>{const f=e.target.files[0];if(!f)return;
     msg.textContent='Leser bildet … første gang kan det ta et halvt minutt.';
