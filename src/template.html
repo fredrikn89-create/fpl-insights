@@ -960,8 +960,13 @@ renderC();
   function ocrApply(words){
     const res=ocrMatch(words);if(!res.length)return 'Fant ingen spillere i bildet. Prøv et skarpere skjermbilde av hele banen og benken.';
     const ids=res.map(h=>h.p.id);let bn=null;
-    const gk=words.find(w=>/^gkp$/i.test(w.text.replace(/[^A-Za-z]/g,'')));
+    const gk=words.find(w=>/^gkp$/i.test(w.text.replace(/[^A-Za-z]/g,''))), sub=words.find(w=>/^substitutes$/i.test(w.text.replace(/[^A-Za-z]/g,'')));
     if(gk){const b=res.filter(h=>h.y>gk.y1-4);if(b.length&&b.filter(h=>h.p.pos===1).length<=1)bn=b.map(h=>h.p.id)}
+    if(!bn&&sub){const b=res.filter(h=>h.y<sub.y0&&h.y>sub.y0-0.3*(sub.y0));const r=b.filter(h=>h.y>sub.y0-260);if(r.length&&r.length<=4&&r.filter(h=>h.p.pos===1).length<=1)bn=r.map(h=>h.p.id)}
+    if(!bn){ // finn radene på banen; siste rad etter et uvanlig stort hopp er benken
+      const ys=[...res].sort((a,b)=>a.y-b.y),rows=[];for(const h of ys){const r=rows[rows.length-1];if(r&&h.y-r[r.length-1].y<80)r.push(h);else rows.push([h])}
+      if(rows.length>=4){const c=rows.map(r=>r.reduce((s,h)=>s+h.y,0)/r.length),gaps=c.slice(1).map((v,i)=>v-c[i]),last=gaps[gaps.length-1],prev=gaps.slice(0,-1).reduce((s,v)=>s+v,0)/(gaps.length-1);
+        const b=rows[rows.length-1];if(last>1.25*prev&&b.length<=4&&b.filter(h=>h.p.pos===1).length<=1)bn=b.map(h=>h.p.id)}}
     if(!bn&&res.length===15){const low=[...res].sort((a,b)=>b.y-a.y).slice(0,4);if(low.filter(h=>h.p.pos===1).length===1)bn=low.map(h=>h.p.id)}
     let x;
     if(bn){x=ids.filter(id=>!bn.includes(id));bench=[bn.find(id=>PBYID[id].pos===1)??null,...bn.filter(id=>PBYID[id].pos!==1)].concat([null,null,null,null]).slice(0,4)}
@@ -981,13 +986,16 @@ renderC();
       const d=cx.getImageData(x,y,Math.min(tw,W-x),Math.min(th,H-y)).data;let wh=0;
       for(let i=0;i<d.length;i+=4)if(d[i]>215&&d[i+1]>215&&d[i+2]>215)wh++;
       if(wh/(d.length/4)>=0.06)tiles.push([x,y])}
-    const words=[];let n=0;
-    for(const [x,y] of tiles){
-      const t=document.createElement('canvas'),pad=40;t.width=tw+2*pad;t.height=th+2*pad;const tc=t.getContext('2d');
-      tc.fillStyle='#fff';tc.fillRect(0,0,t.width,t.height);tc.filter='grayscale(1)';tc.drawImage(cv,x,y,tw,th,pad,pad,tw,th);
-      const {data}=await w.recognize(t);
-      for(const q of data.words||[])words.push({text:q.text,conf:q.confidence,x0:q.bbox.x0-pad+x,x1:q.bbox.x1-pad+x,y0:q.bbox.y0-pad+y,y1:q.bbox.y1-pad+y});
-      onProg(++n,tiles.length)}
+    const words=[];let n=0,total=tiles.length;
+    const pass=async(sc2,filter)=>{const cv2=document.createElement('canvas');cv2.width=Math.round(W*sc2);cv2.height=Math.round(H*sc2);cv2.getContext('2d').drawImage(cv,0,0,cv2.width,cv2.height);
+      for(const [x,y] of tiles){
+        const t=document.createElement('canvas'),pad=40,a=tw*sc2,b=th*sc2;t.width=a+2*pad;t.height=b+2*pad;const tc=t.getContext('2d');
+        tc.fillStyle='#fff';tc.fillRect(0,0,t.width,t.height);tc.filter=filter;tc.drawImage(cv2,x*sc2,y*sc2,a,b,pad,pad,a,b);
+        const {data}=await w.recognize(t);
+        for(const q of data.words||[])words.push({text:q.text,conf:q.confidence,x0:(q.bbox.x0-pad)/sc2+x,x1:(q.bbox.x1-pad)/sc2+x,y0:(q.bbox.y0-pad)/sc2+y,y1:(q.bbox.y1-pad)/sc2+y});
+        onProg(++n,total)}};
+    await pass(1,'grayscale(1)');
+    if(ocrMatch(words).length<15){total=tiles.length*2;await pass(1.6,'grayscale(1) contrast(1.6)')}
     await w.terminate();return words}
   document.getElementById('limg').onchange=async e=>{const f=e.target.files[0];if(!f)return;
     msg.textContent='Leser bildet … første gang kan det ta et halvt minutt.';
