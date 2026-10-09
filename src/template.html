@@ -362,14 +362,8 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
     <button type="button" id="lfb" class="dirbtn">Hent laget mitt</button>
   </div>
   <div class="filters share">
-    <div class="grow"><label for="limg">Hent laget fra et skjermbilde: last opp et bilde av «Pick Team» i FPL-appen, så leser siden navnene</label>
+    <div class="grow"><label for="limg">Hent laget fra et skjermbilde: last opp et bilde av «Pick Team» i FPL-appen, så leser siden navnene. Best resultat: fanen «Pitch», hele banen og benken i ett bilde, uten at noe dekker spillerne</label>
       <input id="limg" type="file" accept="image/*"></div>
-  </div>
-  <div class="filters share">
-    <div class="grow"><label for="limp">Lim inn en lenke laget med «Kopier lenke» her i lagbyggeren (ikke en FPL-lenke)</label>
-      <input id="limp" type="text" placeholder="https://…/?lag=…" autocomplete="off"></div>
-    <button type="button" id="limpb" class="dirbtn">Åpne lag</button>
-    <button type="button" id="lcopy" class="dirbtn" title="Kopierer en lenke som åpner akkurat dette laget for den som mottar den">Kopier lenke</button>
   </div>
   <div class="lsum" id="lsum"></div>
   <p class="note xpnote">Forventede poeng (xP) kommer fra vår egen modell og bygger på forventede mål og assist (siste kamper teller mest), straffeansvar, motstanderens styrke, hjemme/borte, sjanse for clean sheet, DC-terskel, bonus, redninger og forventet spilletid. Totalen gjelder startelleveren, med kapteinen telt dobbelt.</p>
@@ -1012,10 +1006,6 @@ renderC();
     const nx=[...new Set(ids(a).filter(id=>PBYID[id]))].slice(0,11);
     const nb=ids(b).map(id=>PBYID[id]&&!nx.includes(id)?id:null).slice(0,4);while(nb.length<4)nb.push(null);
     xi=nx;bench=nb;cap=nx.includes(+c)?+c:(nx[0]??null);vice=nx.includes(+v)&&+v!==cap?+v:null;budget=Math.max(50,Math.min(150,+bu||100));bIn.value=budget;swapSel=null;return null}
-  const cp=document.getElementById('lcopy');
-  cp.onclick=async()=>{const url=location.origin+location.pathname+'?lag='+code()+'#lag';
-    try{await navigator.clipboard.writeText(url);msg.textContent='Lenken er kopiert. Den som åpner den får akkurat dette laget.'}catch(e){document.getElementById('limp').value=url;msg.textContent='Kunne ikke kopiere automatisk. Lenken ligger i feltet over, kopier den derfra.'}};
-  document.getElementById('limpb').onclick=()=>{const e=load(document.getElementById('limp').value);msg.textContent=e||'Laget er åpnet fra lenken.';if(!e)document.getElementById('limp').value='';render()};
   const qp=new URLSearchParams(location.search).get('lag');
   if(qp){const e=load('lag='+qp);if(!e){try{history.replaceState(null,'',location.pathname+'#lag')}catch(_){}}}
   pitch.onclick=e=>{
