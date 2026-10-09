@@ -48,7 +48,7 @@ def main(out="data.json"):
     def num(x, nd=2):
         return round(float(x), nd) if x not in (None, "") else 0
 
-    players, dct, rw, l5, pc = [], {}, {}, {}, {}
+    players, dct, rw, l5, pc, hist_out = [], {}, {}, {}, {}, {}
     cutoff = datetime.now(timezone.utc) - timedelta(days=30)
     pool = [e for e in b["elements"]
             if e["minutes"] >= 90 or float(e["selected_by_percent"]) >= 2]
@@ -90,6 +90,10 @@ def main(out="data.json"):
             ws += w * m["saves"]
             wst += w * m["starts"]
         l5[str(e["id"])] = last5
+        # kamp for kamp (siste 15 runder) til periodevalg: [runde, minutter, mål, assist, xG, xA]
+        hist_out[str(e["id"])] = [[m["round"], m["minutes"], m["goals_scored"], m["assists"],
+                                   round(float(m["expected_goals"] or 0), 2), round(float(m["expected_assists"] or 0), 2)]
+                                  for m in hist if cur - 15 < m["round"] <= cur]
         # prisendring (i tideler av £m): totalt siden sesongstart, og siden for 30 dager siden
         start = e["now_cost"] - e["cost_change_start"]
         ref = start
@@ -110,7 +114,7 @@ def main(out="data.json"):
         "next": {"id": nxt["id"], "deadline": nxt["deadline_time"]},
         "avg": last.get("average_entry_score") or 0,
         "highest": last.get("highest_score") or 0,
-        "teams": teams, "fx": fx, "players": players, "dct": dct, "rw": rw, "l5": l5, "pc": pc,
+        "teams": teams, "fx": fx, "players": players, "dct": dct, "rw": rw, "l5": l5, "pc": pc, "hist": hist_out,
     }
     with open(out, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"))

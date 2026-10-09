@@ -118,10 +118,12 @@ td.name small{display:block;font:400 12px var(--body);color:var(--muted)}
 .isec[open]>summary h2::before{content:"▾ "}
 .isec>summary span{color:var(--muted);font-size:13px;max-width:90ch}
 .panel.wide{grid-column:1/-1}
-.panel{scroll-margin-top:52px}
-.inav{display:flex;gap:6px;align-items:center;overflow-x:auto;position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;margin:0 0 6px;border-bottom:1px solid var(--line);scrollbar-width:thin}
+.panel{scroll-margin-top:12px}
+.per{display:flex;gap:4px;flex-wrap:wrap}.per button{font:600 11px var(--mono);background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:3px 9px;cursor:pointer}.per button[aria-pressed="true"]{background:var(--pitch);border-color:var(--pitch);color:var(--bg)}
+table.wide5 td.relc b{font:600 13px var(--mono)}
+.inav{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px 0 8px;margin:0 0 6px;border-bottom:1px solid var(--line)}
 .inav>span{font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-right:2px;white-space:nowrap}
-.inav button{font:600 12px var(--mono);white-space:nowrap;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:5px 11px;cursor:pointer}
+.inav button{font:600 10.5px var(--mono);white-space:nowrap;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:3px 8px;cursor:pointer}
 .inav button:hover{border-color:var(--pitch);color:var(--pitch)}
 .hscroll{overflow-x:auto;border-top:1px solid var(--line);max-height:420px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 table.wide5{width:100%;min-width:560px;border-collapse:separate;border-spacing:0}
@@ -207,7 +209,7 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
   table.wide5 th,table.wide5 td{padding:5px 1px;font-size:11px}
   table.wide5 th{font-size:9.5px}
   table.wide5 th.nm1,table.wide5 td.nm1{position:static;width:27%;min-width:0;max-width:none;box-shadow:none;padding-left:2px}
-  table.wide5 th:nth-child(2),table.wide5 td.sum{width:10%}
+  table.wide5 th.sum,table.wide5 td.sum{width:10%}table.wide5 th.relc,table.wide5 td.relc{width:12%}table.wide5 th.mpx,table.wide5 td.mpx{width:12%}table.wide5 .hm{display:none}table.wide5 td.relc b{font-size:11px}
   table.wide5 td.sum{font-size:12px}
   table.wide5 .n1{display:flex;align-items:baseline;gap:3px}
   table.wide5 .nmt{font-size:11.5px;line-height:1.15;overflow-wrap:anywhere}
@@ -568,17 +570,19 @@ const PRICESEC={h:'Prisendringer',d:'Hvor mye prisen har steget eller falt, i mi
 const SECS=[
  {h:'Forventede poeng GW'+D.next.id,d:'Egen modell der de siste kampene teller mest. Basert på forventede mål og assist, straffeansvar, motstanderens styrke, hjemme/borte, sjanse for clean sheet, DC-terskel, bonus og forventede minutter. Hold musen over tallet for å se hva poengene består av for hver spiller.',panels:[
   {id:'xp',t:'Forventede poeng',d:'Modellens anslag for GW'+D.next.id+'.',v:p=>p.xp,f:v=>v.toFixed(1),vl:'xP',pool:p=>p.min>=90,tip:true},
-  {id:'xpm',t:'Forventede poeng per million',d:'Forventede poeng delt på pris.',v:p=>p.xpm,f:v=>v.toFixed(2),vl:'xP/£m',pool:p=>p.min>=90},
-  {id:'xp5',wide:true,t:'Forventede poeng neste 5 runder',d:'Summen av modellens forventede poeng de neste fem rundene, med motstander for hver runde (fargen viser kampvanskelighet, H = hjemme, B = borte). Tvil og skade teller med sjansen for å spille i alle runder. Jo lenger frem, jo mer usikkert.',v:p=>p.xp5s,pool:p=>p.min>=90},
+  {id:'xp5',wide:true,t:'Forventede poeng neste 5 runder',d:'Summen av modellens forventede poeng de neste fem rundene, med motstander for hver runde (fargen viser kampvanskelighet, H = hjemme, B = borte). Tvil og skade teller med sjansen for å spille i alle runder. Jo lenger frem, jo mer usikkert.',v:p=>p.xp5s,pool:p=>p.min>=90,pre:[{h:'Σ xP',cls:'sum',t:'Sum forventede poeng de neste 5 rundene',f:p=>p.xp5s.toFixed(1)}]},
   {id:'xpd',t:'Differensialer',d:'Høyest forventede poeng blant spillere med under 5 % eierskap.',v:p=>p.xp,f:v=>v.toFixed(1),vl:'xP',pool:p=>p.min>=90&&p.sel<5,tip:true}]},
  {h:'Stats per totale poeng',d:'Poeng er FPL-poeng totalt denne sesongen.',panels:[
   {id:'pts',t:'Mest poeng',d:'Totale FPL-poeng.',v:p=>p.pts,f:v=>v,vl:'Poeng',pool:p=>true},
-  {id:'ppm',t:'Mest poeng per million',d:'Totalpoeng delt på pris. Minst 180 minutter.',v:p=>p.ppm,f:v=>v.toFixed(1),vl:'P/£m',pool:p=>p.min>=180},
   {id:'p90',t:'Mest poeng per 90',d:'FPL-poeng per 90 spilte minutter. Minst 180 minutter.',v:p=>p.p90,f:v=>v.toFixed(1),vl:'P/90',pool:p=>p.min>=180}]},
  {h:'Forventede målpoeng og involveringer',d:'Målpoeng er mål + assist. xGI er forventede mål + forventede assist.',panels:[
+  {id:'rel',wide:true,periods:true,t:'Relativ prestasjon til xGI',d:'(Målpoeng − xGI) / xGI. Positiv = overpresterer, −100 % = ingen mål eller assist. Krav: xGI på minst 0,3 og minst 50 % av minuttene i valgt periode. Til høyre ser du de neste 5 kampene med forventede poeng.',
+   v:p=>{const s=perStats(p,istate.per);return (s.g+s.a-s.xgi)/s.xgi*100},pool:p=>{const s=perStats(p,istate.per);return s.xgi>=0.3&&s.min>=0.5*s.n*90},
+   pre:[{h:'Rel.',cls:'relc',t:'Relativ prestasjon til xGI',f:p=>{const s=perStats(p,istate.per),v=(s.g+s.a-s.xgi)/s.xgi*100;return `<b style="color:var(${v>=0?'--good':'--bad'})">${(v>0?'+':'')+Math.round(v)} %</b>`}},
+        {h:'MP/xGI',cls:'mpx',t:'Målpoeng (mål + assist) / forventet måldeltakelse i perioden',f:p=>{const s=perStats(p,istate.per);return `${s.g+s.a} / ${s.xgi.toFixed(1)}`}},
+        {h:'Σ xP',cls:'sum hm',t:'Sum forventede poeng de neste 5 rundene',f:p=>p.xp5s.toFixed(1)}]},
   {id:'gi',t:'Målpoeng',d:'Mål + assist.',v:p=>p.gi,f:v=>v,vl:'Målp.',pool:p=>true},
-  {id:'xgi',t:'Forventet målpoeng (xGI)',d:'xG + xA. Viser hvem som får sjansene.',v:p=>p.xgi,f:v=>v.toFixed(2),vl:'xGI',pool:p=>true},
-  {id:'rel',t:'Relativ prestasjon til xGI',d:'(Målpoeng − xGI) / xGI. Positiv = overpresterer. Kun spillere med xGI på minst 0,3.',v:p=>p.rel,f:v=>(v>0?'+':'')+Math.round(v)+' %',vl:'Rel.',pool:p=>p.rel!=null,col:v=>v>=0?'--good':'--bad'}]},
+  {id:'xgi',t:'Forventet målpoeng (xGI)',d:'xG + xA. Viser hvem som får sjansene.',v:p=>p.xgi,f:v=>v.toFixed(2),vl:'xGI',pool:p=>true}]},
  {h:'Defensive contributions',d:'Forsvarere får 2 poeng i en kamp med minst 10 CBIT (klareringer, blokkeringer, avskjæringer, taklinger). Midtbanespillere og spisser trenger 12 CBIRT (det samme pluss ballvinninger). Keepere kan ikke få DC-poeng.',panels:[
   {id:'dc',t:'DC totalt',d:'Sum defensive contributions denne sesongen.',v:p=>p.dc,f:v=>v,vl:'DC',pool:p=>p.pos>1},
   {id:'dc90',t:'DC per 90',d:'Defensive contributions per 90 minutter. Minst 180 minutter.',v:p=>p.dc90,f:v=>v.toFixed(1),vl:'DC/90',pool:p=>p.pos>1&&p.min>=180},
@@ -588,7 +592,14 @@ const SECS=[
   {id:'diff',t:'Differensialer i form',d:'Tilgjengelige spillere med under 5 % eierskap, sortert på form.',v:p=>p.form,f:v=>v.toFixed(1),vl:'Form',pool:p=>p.sel<5&&p.status==='a'&&p.min>=180},
   {id:'net',t:'Netto overganger',d:'Inn minus ut før GW'+D.next.id+'. Topp = mest kjøpt, bunn = mest solgt.',v:p=>p.net,f:v=>(v>0?'+':'')+v.toLocaleString('nb-NO'),vl:'Netto',pool:p=>true,col:v=>v>=0?'--good':'--bad'}]}]
 if(D.pc)SECS.push(PRICESEC);
-const istate={pos:0,dir:{},teams:new Set()};
+const istate={pos:0,dir:{},teams:new Set(),per:'all'};
+const PER_OPTS=[['all','Sesong'],[5,'Siste 5'],[10,'Siste 10'],[15,'Siste 15']];
+// målpoeng og xGI i en periode (siste N runder), fra kamp-for-kamp-data. Uten slike data brukes hele sesongen.
+function perStats(p,per){
+  const G=Math.max(1,D.gw), n=per==='all'?G:Math.min(per,G), h=D.hist&&D.hist[p.id];
+  if(per==='all'||!h)return {n,min:p.min,g:p.g,a:p.a,xgi:p.xgi};
+  let min=0,g=0,a=0,xg=0,xa=0;for(const m of h)if(m[0]>D.gw-n){min+=m[1];g+=m[2];a+=m[3];xg+=m[4];xa+=m[5]}
+  return {n,min,g,a,xgi:xg+xa}}
 const MIX=[...CLUBS.map(c=>({id:100000+c.id,cid:c.id,name:c.name,nn:c.nn,club:true})),...P];
 const MIXBY=Object.fromEntries(MIX.map(x=>[x.id,x]));
 const mixOpts={items:MIX,byId:MIXBY,
@@ -610,10 +621,11 @@ ipc.onclick=e=>{const bt=e.target.closest('button');if(!bt)return;istate.pos=+bt
 function widePanelHtml(pn){
   const asc=!!istate.dir[pn.id];
   const rows=P.filter(p=>ipass(p)&&pn.pool(p)).sort((a,b)=>((pn.v(b)-pn.v(a))||(b.pts-a.pts))*(asc?-1:1));
-  const g0=D.next.id, gws5=[0,1,2,3,4].map(i=>g0+i);
-  const body=rows.map((p,i)=>`<tr><td class="nm1"><div class="n1"><span class="rk1">${i+1}</span><span class="nmt">${esc(p.name)}</span></div><small>${badge(p.team)} ${POS[p.pos]} · £${p.price.toFixed(1)}<span class="eidx"> · ${fmt(p.sel)} % eid</span></small></td><td class="sum">${p.xp5s.toFixed(1)}</td>${p.xp5.map(x=>`<td><div class="gwc"><span class="fdr">${x.fl.length?x.fl.map(chip).join(''):'<i class="d3">–</i>'}</span><b>${x.fl.length?x.xp.toFixed(1):'–'}</b></div></td>`).join('')}</tr>`).join('')||'<tr><td colspan="7" class="empty">Ingen spillere passer.</td></tr>';
-  return `<div class="panel wide" id="pn-${pn.id}"><div class="phead"><h3>${pn.t}</h3><button type="button" class="dirbtn" data-p="${pn.id}" title="Bytt mellom høyeste og laveste verdier">${asc?'Bunn ↑':'Topp ↓'}</button></div><p>${pn.d}</p>
-   <div class="hscroll"><table class="wide5"><thead><tr><th class="nm1">Spiller</th><th title="Sum forventede poeng de neste 5 rundene">Σ xP</th>${gws5.map(g=>`<th>GW${g}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div><div class="cnt">${rows.length} spillere · rull ned for flere</div></div>`;
+  const g0=D.next.id, gws5=[0,1,2,3,4].map(i=>g0+i), pre=pn.pre||[];
+  const body=rows.map((p,i)=>`<tr><td class="nm1"><div class="n1"><span class="rk1">${i+1}</span><span class="nmt">${esc(p.name)}</span></div><small>${badge(p.team)} ${POS[p.pos]} · £${p.price.toFixed(1)}<span class="eidx"> · ${fmt(p.sel)} % eid</span></small></td>${pre.map(c=>`<td class="${c.cls||''}">${c.f(p)}</td>`).join('')}${p.xp5.map(x=>`<td><div class="gwc"><span class="fdr">${x.fl.length?x.fl.map(chip).join(''):'<i class="d3">–</i>'}</span><b>${x.fl.length?x.xp.toFixed(1):'–'}</b></div></td>`).join('')}</tr>`).join('')||`<tr><td colspan="${2+pre.length+5}" class="empty">Ingen spillere passer.</td></tr>`;
+  const per=pn.periods?`<div class="per" role="group" aria-label="Periode">${PER_OPTS.map(([v,l])=>`<button type="button" data-per="${v}" aria-pressed="${String(istate.per)===String(v)}">${l}</button>`).join('')}</div>`:'';
+  return `<div class="panel wide" id="pn-${pn.id}"><div class="phead"><h3>${pn.t}</h3><button type="button" class="dirbtn" data-p="${pn.id}" title="Bytt mellom høyeste og laveste verdier">${asc?'Bunn ↑':'Topp ↓'}</button></div>${per}<p>${pn.d}</p>
+   <div class="hscroll"><table class="wide5"><thead><tr><th class="nm1">Spiller</th>${pre.map(c=>`<th class="${c.cls||''}" title="${esc(c.t||'')}">${c.h}</th>`).join('')}${gws5.map(g=>`<th>GW${g}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div><div class="cnt">${rows.length} spillere · rull ned for flere</div></div>`;
 }
 function panelHtml(pn){
   if(pn.wide)return widePanelHtml(pn);
@@ -634,7 +646,7 @@ function renderI(){
   const open=[...insEl.querySelectorAll('details')].map(d=>d.open);
   insEl.innerHTML=SECS.map((s,i)=>`<details class="isec" ${open.length&&!open[i]?'':'open'}><summary><h2>${s.h}</h2><span>${s.d}</span></summary><div class="grid3">${s.panels.map(panelHtml).join('')}</div></details>`).join('');
 }
-insEl.onclick=e=>{const bt=e.target.closest('.dirbtn');if(!bt)return;istate.dir[bt.dataset.p]=!istate.dir[bt.dataset.p];renderI()};
+insEl.onclick=e=>{const pb=e.target.closest('[data-per]');if(pb){istate.per=pb.dataset.per==='all'?'all':+pb.dataset.per;renderI();return}const bt=e.target.closest('.dirbtn');if(!bt)return;istate.dir[bt.dataset.p]=!istate.dir[bt.dataset.p];renderI()};
 renderI();buildNav();
 
 // ---------- clubs
