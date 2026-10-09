@@ -366,7 +366,7 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
       <input id="limg" type="file" accept="image/*"></div>
   </div>
   <div class="filters share">
-    <div class="grow"><label for="limp">Lim inn en lenke til et lag (fra «Kopier lenke») for å åpne det her</label>
+    <div class="grow"><label for="limp">Lim inn en lenke laget med «Kopier lenke» her i lagbyggeren (ikke en FPL-lenke)</label>
       <input id="limp" type="text" placeholder="https://…/?lag=…" autocomplete="off"></div>
     <button type="button" id="limpb" class="dirbtn">Åpne lag</button>
     <button type="button" id="lcopy" class="dirbtn" title="Kopierer en lenke som åpner akkurat dette laget for den som mottar den">Kopier lenke</button>
@@ -998,7 +998,7 @@ renderC();
   // ---- deling via lenke
   const code=()=>[xi.join('.'),bench.map(x=>x??0).join('.'),cap??0,vice??0,budget].join('_');
   function load(str){
-    const m=String(str).match(/lag=([0-9._]+)/)||String(str).trim().match(/^([0-9._]+)$/);if(!m)return 'Fant ingen lag i lenken.';
+    const m=String(str).match(/lag=([0-9._]+)/)||String(str).trim().match(/^([0-9._]+)$/);if(!m)return /premierleague\.com/i.test(str)?'Dette er en lenke til FPL-laget ditt. Den kan ikke leses her ennå. Last opp et skjermbilde av laget i feltet over i stedet.':'Fant ingen lag i lenken. Her fungerer bare lenker laget med «Kopier lenke» i denne lagbyggeren.';
     const [a,b,c,v,bu]=m[1].split('_');if(b==null)return 'Lenken er ufullstendig.';
     const ids=t=>(t||'').split('.').map(Number);
     const nx=[...new Set(ids(a).filter(id=>PBYID[id]))].slice(0,11);
