@@ -906,12 +906,13 @@ renderC();
     save();
   }
   // ---- lagimport fra skjermbilde (OCR i nettleseren med Tesseract.js, bildet forlater aldri enheten)
-  const KEYS=P.map(p=>({p,k:norm(p.name).replace(/ß/g,'b').replace(/[^a-z]/g,'')})).filter(x=>x.k.length>=3);
+  const KEYS=P.flatMap(p=>{const n=norm(p.name);return (/ß/.test(p.name)?['b','ss','s']:['b']).map(r=>({p,k:n.replace(/ß/g,r).replace(/[^a-z]/g,'')}))}).filter((x,i,a)=>x.k.length>=3&&a.findIndex(y=>y.p===x.p&&y.k===x.k)===i);
+  const fixDigits=t=>t.replace(/(?<=[A-Za-zß])8/g,'b').replace(/(?<=[A-Za-zß])5/g,'s').replace(/(?<=[A-Za-zß])0/g,'o').replace(/@/g,'o');
   function lev(a,b,max){if(Math.abs(a.length-b.length)>max)return max+1;let prev=Array.from({length:b.length+1},(_,i)=>i);
     for(let i=1;i<=a.length;i++){const cur=[i];let mn=i;for(let j=1;j<=b.length;j++){const v=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));cur.push(v);if(v<mn)mn=v}prev=cur;if(mn>max)return max+1}return prev[b.length]}
   // words: [{text,conf,x0,y0,x1,y1}] i bildekoordinater
   function ocrMatch(words){
-    const W=words.map(w=>({...w,c:norm(w.text).replace(/ß/g,'b').replace(/@/g,'o').replace(/[^a-z]/g,''),cy:(w.y0+w.y1)/2,h:w.y1-w.y0})).filter(w=>w.c.length>=2);
+    const W=words.map(w=>({...w,c:norm(fixDigits(w.text)).replace(/ß/g,'b').replace(/[^a-z]/g,''),cy:(w.y0+w.y1)/2,h:w.y1-w.y0})).filter(w=>w.c.length>=2);
     const cands=[];
     W.forEach((w,i)=>{cands.push({c:w.c,y:w.cy,conf:w.conf,used:[i],dots:/[.…]$/.test(w.text),fx:words.some(n=>/\([HAB]\)?|^[HAB]\)$|^[£€$]?\d{1,2}[.,]\d$/.test(n.text)&&(n.y0+n.y1)/2>w.cy&&(n.y0+n.y1)/2-w.cy<2.6*Math.max(w.h,n.y1-n.y0)&&Math.abs((n.x0+n.x1)/2-(w.x0+w.x1)/2)<1.2*Math.max(w.x1-w.x0,n.x1-n.x0))});
       W.forEach((n,j)=>{if(j===i)return;const hh=Math.max(w.h,n.h);
@@ -922,7 +923,7 @@ renderC();
     for(const cd of cands){if(cd.c.length<3||cd.conf<45||(cd.c.length<=4&&cd.conf<70))continue;
       if(cd.c.length<=5&&!cd.fx)continue; // korte navn kreves med «(H)/(A)»-linjen rett under, ellers er det oftest støy
       let best=null;
-      for(const {p,k} of KEYS){const max=cd.conf<50?0:k.length>=9?2:k.length>=6?1:0;let d=lev(cd.c,k,max);
+      for(const {p,k} of KEYS){const max=cd.conf<50?0:k.length>=9?2:k.length>=6?1:(cd.fx&&cd.conf>=60&&k.length>=4)?1:0;let d=lev(cd.c,k,max);
         if(d>max&&k.length>cd.c.length&&k.startsWith(cd.c)&&(cd.c.length>=6||(cd.dots&&cd.c.length>=4)))d=0.5; // avkortet navn («Verbrugg…»)
         if(d<=max+0.5&&(d<=max||d===0.5)&&(!best||d<best.d||(d===best.d&&p.sel>best.p.sel)))best={p,d}}
       if(best)hits.push({...cd,...best})}
@@ -933,7 +934,8 @@ renderC();
     const cnts={1:0,2:0,3:0,4:0},res=[];
     for(const h of [...got.values()].sort((a,b)=>a.d-b.d||b.conf-a.conf)){if(cnts[h.p.pos]>=SQ[h.p.pos])continue;cnts[h.p.pos]++;res.push(h)}
     return res}
-  function ocrApply(words){
+  let budgetNote='';
+  function ocrApply(words){budgetNote='';
     const res=ocrMatch(words);if(!res.length)return 'Fant ingen spillere i bildet. Prøv et skarpere skjermbilde av hele banen og benken.';
     const ids=res.map(h=>h.p.id);let bn=null;
     const gk=words.find(w=>/^gkp$/i.test(w.text.replace(/[^A-Za-z]/g,''))), sub=words.find(w=>/^substitutes$/i.test(w.text.replace(/[^A-Za-z]/g,'')));
@@ -948,8 +950,10 @@ renderC();
     if(bn){x=ids.filter(id=>!bn.includes(id));bench=[bn.find(id=>PBYID[id].pos===1)??null,...bn.filter(id=>PBYID[id].pos!==1)].concat([null,null,null,null]).slice(0,4)}
     else{x=bestXI(ids,p=>p.xp);const b=ids.filter(id=>!x.includes(id));bench=[b.find(id=>PBYID[id].pos===1)??null,...b.filter(id=>PBYID[id].pos!==1)].concat([null,null,null,null]).slice(0,4)}
     xi=x;
+    const val=cost(xi.concat(bench.filter(v=>v!=null))), need=Math.ceil((val+(15-res.length)*6)*2)/2;
+    if(need>budget){budget=Math.min(150,need);bIn.value=budget;budgetNote=` Budsjettet er satt til £${budget.toFixed(1)}m fordi prisene har endret seg siden du kjøpte spillerne. Juster det i Budsjett-feltet om det ikke stemmer.`}
     const byXp=[...xi].sort((a,b)=>PBYID[b].xp-PBYID[a].xp);cap=byXp[0]??null;vice=byXp[1]??null;swapSel=null;
-    return `Fant ${res.length} av 15 spillere. Kapteinen er satt til spilleren med høyest xP${bn?'':' og startelleveren er valgt etter xP'}. Sjekk at alt stemmer og rett opp det som mangler.`}
+    return `Fant ${res.length} av 15 spillere. Kapteinen er satt til spilleren med høyest xP${bn?'':' og startelleveren er valgt etter xP'}. Sjekk at alt stemmer og rett opp det som mangler.${budgetNote}`}
   window.fplOcr={ocrMatch,ocrApply:w=>{const m=ocrApply(w);render();return m}};
   const loadTess=()=>window.Tesseract?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)});
   // Hele bildet i ett pass overser ofte navn på fargede drakter, så vi leser det i overlappende fliser.
