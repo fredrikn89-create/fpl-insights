@@ -443,6 +443,9 @@ const h=location.hash.slice(1); showTab(TABIDS.includes(h)?h:'lag');
     const games=Math.max(1,Math.round(anchor.min/90));
     TS[t[0]]={games,xg:ps.reduce((s,p)=>s+p.xg,0)/games,xgc:anchor.xgc/(anchor.min/90)}});
   const avgXG=Object.values(TS).reduce((s,t)=>s+t.xg,0)/20, avgXGC=Object.values(TS).reduce((s,t)=>s+t.xgc,0)/20;
+  // lagstyrke etter få runder er svært usikker: trekk xG/xGC mot ligasnittet (tilsvarer 5 kamper forhåndsvekt)
+  const KT=5;Object.values(TS).forEach(t=>{t.xg=(t.xg*t.games+avgXG*KT)/(t.games+KT);t.xgc=(t.xgc*t.games+avgXGC*KT)/(t.games+KT)});
+  const dcPrior={};[2,3,4].forEach(pos=>{const ps=P.filter(p=>p.pos===pos&&p.min>=180);const h=ps.reduce((s,p)=>s+(((D.dct||{})[p.id]||[0,0])[0]),0),n=ps.reduce((s,p)=>s+(((D.dct||{})[p.id]||[0,0])[1]),0);dcPrior[pos]=n?h/n:0.2});
   const GOAL={1:10,2:6,3:5,4:4}, CSP={1:4,2:4,3:1,4:0};
   const prior={};[1,2,3,4].forEach(pos=>{const ps=P.filter(p=>p.pos===pos&&p.min>=180);const m=ps.reduce((s,p)=>s+p.min,0)/90||1;
     prior[pos]={xg:ps.reduce((s,p)=>s+p.xg,0)/m,xa:ps.reduce((s,p)=>s+p.xa,0)/m,bon:ps.reduce((s,p)=>s+p.bonus,0)/m,sav:ps.reduce((s,p)=>s+p.saves,0)/m}});
@@ -463,7 +466,7 @@ const h=location.hash.slice(1); showTab(TABIDS.includes(h)?h:'lag');
           xa90=((rw?rw[2]:p.xa)+pr.xa*K)/n90,
           bon90=((rw?rw[3]:p.bonus)+pr.bon*K)/n90,
           sav90=((rw?rw[4]:p.saves)+pr.sav*K)/n90;
-    const dcRate=(p.dch+0.2)/(p.dca+1);
+    const dcRate=p.pos>1?(p.dch+dcPrior[p.pos]*3)/(p.dca+3):0;
     const fx=(FX[p.team]||[]).filter(f=>f.gw===D.next.id);
     let tot=0;const parts={app:0,att:0,cs:0,gc:0,dc:0,bon:0,sav:0};
     const one=(f,parts)=>{
