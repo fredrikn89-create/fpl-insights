@@ -913,7 +913,7 @@ renderC();
   function ocrMatch(words){
     const W=words.map(w=>({...w,c:norm(w.text).replace(/ß/g,'b').replace(/@/g,'o').replace(/[^a-z]/g,''),cy:(w.y0+w.y1)/2,h:w.y1-w.y0})).filter(w=>w.c.length>=2);
     const cands=[];
-    W.forEach((w,i)=>{cands.push({c:w.c,y:w.cy,conf:w.conf,used:[i],dots:/[.…]$/.test(w.text),fx:words.some(n=>/\([HAB]\)?|^[HAB]\)$/.test(n.text)&&(n.y0+n.y1)/2>w.cy&&(n.y0+n.y1)/2-w.cy<2.6*Math.max(w.h,n.y1-n.y0)&&Math.abs((n.x0+n.x1)/2-(w.x0+w.x1)/2)<1.2*Math.max(w.x1-w.x0,n.x1-n.x0))});
+    W.forEach((w,i)=>{cands.push({c:w.c,y:w.cy,conf:w.conf,used:[i],dots:/[.…]$/.test(w.text),fx:words.some(n=>/\([HAB]\)?|^[HAB]\)$|^[£€$]?\d{1,2}[.,]\d$/.test(n.text)&&(n.y0+n.y1)/2>w.cy&&(n.y0+n.y1)/2-w.cy<2.6*Math.max(w.h,n.y1-n.y0)&&Math.abs((n.x0+n.x1)/2-(w.x0+w.x1)/2)<1.2*Math.max(w.x1-w.x0,n.x1-n.x0))});
       W.forEach((n,j)=>{if(j===i)return;const hh=Math.max(w.h,n.h);
         const same=Math.abs(n.cy-w.cy)<0.6*hh&&n.x0>=w.x1-hh&&n.x0-w.x1<hh*1.5;
         const wrap=n.cy>w.cy&&n.cy-w.cy<2*hh&&Math.abs((n.x0+n.x1)/2-(w.x0+w.x1)/2)<Math.max(w.x1-w.x0,n.x1-n.x0);
