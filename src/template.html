@@ -155,6 +155,11 @@ table.mini td.val{font:600 13px var(--mono)}
 table.mini small{display:block;color:var(--muted);font-size:11px}
 .cnt{font-size:11px;color:var(--muted)}
 .lsum{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px}
+.gwsel{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
+.gwsel .gwl{font:500 11px var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-right:4px}
+.gwsel button{font:600 12.5px var(--sans,inherit);padding:6px 11px;border-radius:999px;border:1px solid var(--line,#ccd);background:var(--panel,#fff);color:inherit;cursor:pointer}
+.gwsel button[aria-pressed=true]{background:var(--pitch);color:#fff;border-color:var(--pitch)}
+.pcard .dots i.cur{outline:1.5px solid currentColor;outline-offset:1px}
 .lbig{display:grid;align-content:center;background:var(--pitch-soft);border-radius:6px;padding:6px 14px;min-width:120px}
 .lbig span{font:500 10.5px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
 .lbig b{font:700 30px/1.05 var(--display);color:var(--pitch);font-variant-numeric:tabular-nums}
@@ -360,6 +365,7 @@ table.mini small{display:block;color:var(--muted);font-size:11px}
     <div class="grow"><label for="limg">Hent laget fra et skjermbilde: last opp et bilde av «Pick Team» i FPL-appen, så leser siden navnene. Best resultat: fanen «Pitch», hele banen og benken i ett bilde, uten at noe dekker spillerne</label>
       <input id="limg" type="file" accept="image/*"></div>
   </div>
+  <div class="gwsel" id="lgw" role="group" aria-label="Velg runde for forventede poeng og motstandere"></div>
   <div class="lsum" id="lsum"></div>
   <p class="note xpnote">Forventede poeng (xP) kommer fra vår egen modell og bygger på forventede mål og assist (siste kamper teller mest), straffeansvar, motstanderens styrke, hjemme/borte, sjanse for clean sheet, DC-terskel, bonus, redninger og forventet spilletid. Totalen gjelder startelleveren, med kapteinen telt dobbelt.</p>
   <div class="pitch" id="pitch"></div>
@@ -731,14 +737,14 @@ renderC();
     if(cap==null&&where==='xi')cap=id;
     msg.textContent='';render();return true;
   }
-  const opts={...playerOpts,items:P,row:p=>{const wh=firstFree(p);return `<span${wh?'':' style="opacity:.45"'}>${esc(p.name)}<small>${POS[p.pos]} · £${p.price.toFixed(1)} · xP ${fmt(p.xp)}${wh?(wh==='xi'?'':' · til benken'):' · ikke plass'}</small></span>${badge(p.team)}`}};
+  const opts={...playerOpts,items:P,row:p=>{const wh=firstFree(p);return `<span${wh?'':' style="opacity:.45"'}>${esc(p.name)}<small>${POS[p.pos]} · £${p.price.toFixed(1)} · xP ${fmt(p.xs)}${wh?(wh==='xi'?'':' · til benken'):' · ikke plass'}</small></span>${badge(p.team)}`}};
   const pk=makePicker('pk-team',opts,()=>{const id=[...pk.set][0];pk.clear();if(id==null)return;const wh=firstFree(PBYID[id]);
     if(!wh){msg.textContent=canAdd(PBYID[id],null,'xi')+'.';return}place(id,wh)});
 
   // ---- velg-spiller-vindu
   const modal=document.getElementById('lmodal'),mt=document.getElementById('mtable'),mq=document.getElementById('mq'),mmax=document.getElementById('mmax'),mpos=document.getElementById('mpos');
   const M={pos:[1],cur:1,where:'xi',replace:null,sort:'xp',asc:false};
-  const MC=[{k:'name',l:'Spiller',cls:'l'},{k:'price',l:'Pris'},{k:'xp',l:'xP GW'+D.next.id,t:'Forventede poeng neste runde'},{k:'pts',l:'Poeng'},{k:'form',l:'Form'},{k:'sel',l:'Eid %'},{k:'fdr',l:'Neste 5',cls:'l'}];
+  const MC=[{k:'name',l:'Spiller',cls:'l'},{k:'price',l:'Pris'},{k:'xs',l:'xP',t:'Forventede poeng i valgt runde'},{k:'pts',l:'Poeng'},{k:'form',l:'Form'},{k:'sel',l:'Eid %'},{k:'fdr',l:'Neste 5',cls:'l'}];
   mt.querySelector('thead').innerHTML='<tr>'+MC.map(c=>`<th class="${c.cls||''}" data-k="${c.k}"${c.t?` title="${c.t}"`:''}>${c.l}</th>`).join('')+'</tr>';
   mt.querySelector('thead').onclick=e=>{const th=e.target.closest('th');if(!th)return;const k=th.dataset.k;if(M.sort===k)M.asc=!M.asc;else{M.sort=k;M.asc=(k==='name'||k==='fdr'||k==='price')}drawM()};
   mpos.onclick=e=>{const bt=e.target.closest('button');if(!bt)return;M.cur=+bt.dataset.v;drawM()};
@@ -760,7 +766,7 @@ renderC();
     mt.querySelectorAll('th').forEach(th=>{th.classList.toggle('on',th.dataset.k===M.sort);th.classList.toggle('asc',M.asc)});
     mt.querySelector('tbody').innerHTML=rows.map(p=>{const w=canAdd(p,M.replace,M.where);
       return `<tr class="${w?'off':'pickable'}" data-id="${p.id}"${w?` title="${w}"`:''}><td class="l"><div class="nm"><span><span class="st ${p.status}"></span>${esc(p.name)}<small>${w?w:TEAMS[p.team].name}</small></span>${badge(p.team)}</div></td>
-        <td>£${p.price.toFixed(1)}</td><td class="num-strong">${fmt(p.xp)}</td><td>${p.pts}</td><td>${fmt(p.form)}</td><td>${fmt(p.sel)}</td><td class="l">${fdrHtml(p.team)}</td></tr>`}).join('')
+        <td>£${p.price.toFixed(1)}</td><td class="num-strong">${fmt(p.xs)}</td><td>${p.pts}</td><td>${fmt(p.form)}</td><td>${fmt(p.sel)}</td><td class="l">${fdrHtml(p.team)}</td></tr>`}).join('')
       ||`<tr><td colspan="7" class="empty">Ingen spillere passer søket. Prøv å øke maks pris.</td></tr>`;
     document.getElementById('mcnt').textContent=`${rows.length} spillere · maks pris er satt til det du har igjen av budsjettet · klikk en rad for å velge · xP = forventede poeng neste runde (mål og assist, motstander, clean sheet, DC, bonus og spilletid)`;
   }
@@ -805,7 +811,7 @@ renderC();
       pools[k]=[...new Set(top.concat(cheap))]});
     const minPrice={};[1,2,3,4].forEach(k=>minPrice[k]=Math.min(...pools[k].map(p=>p.price)));
     const obj=ids=>{const x=bestXI(ids,sc);const xs=x.reduce((s,id)=>s+sc(PBYID[id]),0);
-      const bs=ids.reduce((s,id)=>s+sc(PBYID[id]),0)-xs;const capB=useCap?Math.max(...x.map(id=>PBYID[id].xp)):0;
+      const bs=ids.reduce((s,id)=>s+sc(PBYID[id]),0)-xs;const capB=useCap?Math.max(...x.map(id=>PBYID[id].xs)):0;
       const gk=x.find(id=>PBYID[id].pos===1);const noGk=gk!=null&&PBYID[gk].min===0?50:0; // unngå keeper uten spilletid i startelleveren
       return xs+capB+0.1*bs-1000*Math.max(0,cost(ids)-B)-noGk};
     // grådig start: beste score, men behold råd til resten av troppen
@@ -829,25 +835,31 @@ renderC();
           for(const p of short[a.pos]){if(rest.includes(p.id)||!clubOk(rest,p))continue;const r2=rest.concat(p.id);
             for(const q of short[c.pos]){if(r2.includes(q.id)||!clubOk(r2,q))continue;const cand=r2.concat(q.id);const v=obj(cand);if(v>bv+1e-6){bv=v;best=cand}}}}}
       if(!best)break;sq=best;cur=bv}
-    const x=bestXI(sq,p=>p.xp+(p.min>0?0:-5));const bn=sq.filter(id=>!x.includes(id));
-    const bgk=bn.find(id=>PBYID[id].pos===1);const bout=bn.filter(id=>PBYID[id].pos!==1).sort((a,b)=>PBYID[b].xp-PBYID[a].xp);
+    const x=bestXI(sq,p=>p.xs+(p.min>0?0:-5));const bn=sq.filter(id=>!x.includes(id));
+    const bgk=bn.find(id=>PBYID[id].pos===1);const bout=bn.filter(id=>PBYID[id].pos!==1).sort((a,b)=>PBYID[b].xs-PBYID[a].xs);
     xi=x;bench=[bgk??null,...bout,null,null,null].slice(0,4);
-    const byXp=[...x].sort((a,b)=>PBYID[b].xp-PBYID[a].xp);cap=byXp[0];vice=byXp[1];
+    const byXp=[...x].sort((a,b)=>PBYID[b].xs-PBYID[a].xs);cap=byXp[0];vice=byXp[1];
   }
   const relOf=p=>p.rel==null?0:p.rel;
   const QUICK={
     under:{s:p=>p.sel*(p.rel!=null&&p.rel<0?1+Math.min(1,-p.rel/100):0.15),t:'Populære underbetalte: populære spillere som har levert under xGI. Keepere og spillere uten nok xGI fylles inn etter eierandel.'},
     over:{s:p=>p.sel*(p.rel!=null&&p.rel>0?1+Math.min(1,p.rel/100):0.15),t:'Populære overbetalte: populære spillere som har levert over xGI. Keepere og spillere uten nok xGI fylles inn etter eierandel.'},
-    due:{s:p=>(p.min>=200&&p.l5>=3?Math.max(0,p.xgi-p.gi):0)+0.01*p.xp,t:'Mest underbetalt: spillerne med flest «manglende» mål og assist (xGI minus faktiske mål og assist), blant dem som har spilt minst 200 minutter og vært på banen i minst 3 av de siste 5 rundene. Resten av troppen fylles inn etter forventede poeng.'},
-    xp:{s:p=>p.xp,cap:true,t:'Høyest forventet poengsum: troppen som gir mest forventede poeng i startelleveren neste runde, med kaptein. Forventede poeng bygger på forventede mål og assist, straffeansvar, motstander, hjemme/borte, clean sheet-sjanse, DC-terskel, bonus og spilletid.'},
+    due:{s:p=>(p.min>=200&&p.l5>=3?Math.max(0,p.xgi-p.gi):0)+0.01*p.xs,t:'Mest underbetalt: spillerne med flest «manglende» mål og assist (xGI minus faktiske mål og assist), blant dem som har spilt minst 200 minutter og vært på banen i minst 3 av de siste 5 rundene. Resten av troppen fylles inn etter forventede poeng.'},
+    xp:{s:p=>p.xs,cap:true,t:'Høyest forventet poengsum: troppen som gir mest forventede poeng i startelleveren neste runde, med kaptein. Forventede poeng bygger på forventede mål og assist, straffeansvar, motstander, hjemme/borte, clean sheet-sjanse, DC-terskel, bonus og spilletid.'},
     own:{s:p=>p.sel,t:'Mest eid: troppen med høyest samlet eierandel.'},
     form:{s:p=>p.min>0?p.form:0,t:'Formspillere: troppen med høyest form, altså snitt FPL-poeng per kamp de siste 30 dagene.'},
-    fdr:{s:p=>p.xp*Math.pow(3/fdrAvg(p.team),1.5),t:'Lett kampprogram: forventede poeng neste runde (mål og assist, motstander, clean sheet, DC, bonus og spilletid), vektet mot lag med lettest kampprogram (lavest snitt-FDR) de neste 5 rundene.'}};
+    fdr:{s:p=>p.xs*Math.pow(3/fdrAvg(p.team),1.5),t:'Lett kampprogram: forventede poeng neste runde (mål og assist, motstander, clean sheet, DC, bonus og spilletid), vektet mot lag med lettest kampprogram (lavest snitt-FDR) de neste 5 rundene.'}};
   document.getElementById('lquick').onclick=e=>{const bt=e.target.closest('[data-q]');if(!bt)return;const q=QUICK[bt.dataset.q];
     optimise(q.s,q.cap);msg.textContent=q.t+` Startelleveren er satt opp etter forventede poeng. Budsjett £${budget.toFixed(1)}m, maks 3 per klubb, kun spillere som ventes å være tilgjengelige.`;render()};
 
   // ---- tegning
   const pitch=document.getElementById('pitch'), sum=document.getElementById('lsum');
+  let selOff=0;
+  const setGW=o=>{selOff=o;P.forEach(p=>{p.xs=p.xp5[o].xp})};
+  setGW(0);
+  const gwbox=document.getElementById('lgw');
+  gwbox.innerHTML='<span class="gwl">Vis runde:</span>'+[0,1,2,3].map(i=>`<button type="button" data-o="${i}" aria-pressed="${i===0}">GW${D.next.id+i}${i===0?' (neste)':''}</button>`).join('');
+  gwbox.onclick=e=>{const b=e.target.closest('[data-o]');if(!b)return;setGW(+b.dataset.o);gwbox.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));render()};
   function card(p,where){
     const sel=swapSel===p.id, tg=swapSel!=null&&!sel?(swapErr(swapSel,p.id)?' swno':' swok'):'';
     return `<div class="pcard${sel?' swapsel':''}${tg}${where!=='xi'?' bcard':''}" data-id="${p.id}" data-where="${where}" title="Klikk for å bytte ut">
@@ -856,9 +868,9 @@ renderC();
       ${p.status!=='a'?`<span class="flag" title="${stTitle[p.status]}${p.chance!=null?' – '+p.chance+'% sjanse':''}">!</span>`:''}
       ${badge(p.team)}
       <b>${esc(p.name)}</b>
-      <span class="xp">${fmt(p.xp*(p.id===cap&&where==='xi'?2:1))}<small> xP${p.id===cap&&where==='xi'?'×2':''}</small></span>
-      <span class="meta2">£${p.price.toFixed(1)} ${next5(p.team).slice(0,1).map(f=>`<span class="opp d${f.d}" title="GW${f.gw}: ${TEAMS[f.opp].name} ${f.home?'hjemme':'borte'} (FDR ${f.d})">${TEAMS[f.opp].short} (${f.home?'H':'B'})</span>`).join('')||'<span class="opp d3">Ingen kamp</span>'}</span>
-      <span class="dots" aria-label="Kampvanskelighet neste 5 runder">${next5(p.team).map(f=>`<i class="d${f.d}" title="GW${f.gw}: ${TEAMS[f.opp].short} ${f.home?'(H)':'(B)'} · FDR ${f.d}"></i>`).join('')}</span>
+      <span class="xp">${fmt(p.xs*(p.id===cap&&where==='xi'?2:1))}<small> xP${p.id===cap&&where==='xi'?'×2':''}</small></span>
+      <span class="meta2">£${p.price.toFixed(1)} ${p.xp5[selOff].fl.map(f=>`<span class="opp d${f.d}" title="GW${f.gw}: ${TEAMS[f.opp].name} ${f.home?'hjemme':'borte'} (FDR ${f.d})">${TEAMS[f.opp].short} (${f.home?'H':'B'})</span>`).join(' ')||'<span class="opp d3">Ingen kamp</span>'}</span>
+      <span class="dots" aria-label="Kampvanskelighet neste 5 runder">${next5(p.team).map(f=>`<i class="d${f.d}${f.gw===D.next.id+selOff?' cur':''}" title="GW${f.gw}: ${TEAMS[f.opp].short} ${f.home?'(H)':'(B)'} · FDR ${f.d}"></i>`).join('')}</span>
       ${where!=='xi'?`<button type="button" class="swbtn" data-act="sw" aria-pressed="${sel}">${sel?'Velg bytte':'⇄ Bytt inn'}</button>`:''}
       ${where==='xi'?`<div class="cv"><button type="button" data-act="c" aria-pressed="${p.id===cap}" title="Kaptein (dobbel poeng)">C</button><button type="button" data-act="v" aria-pressed="${p.id===vice}" title="Visekaptein">V</button></div>`:''}
     </div>`;
@@ -875,17 +887,17 @@ renderC();
     const benchRow=bench.map((id,i)=>id!=null?card(PBYID[id],'b'+i):slot(`data-bench="${i}"`,i===0?'MÅL':'Benk '+i,'bslot')).join('');
     pitch.innerHTML=`<div class="field"><i class="mk box"></i><i class="mk six"></i><i class="mk arc"></i><i class="mk spot"></i><i class="mk circle"></i><i class="mk cspot"></i>${rows}</div><div class="bench"><span class="blabel">Benk</span><div class="prow" style="--n:4">${benchRow}</div></div>`;
     const S=(arr,k)=>arr.reduce((s,id)=>s+PBYID[id][k],0);
-    const capP=xi.includes(cap)?PBYID[cap]:null, xp=S(xi,'xp')+(capP?capP.xp:0);
+    const capP=xi.includes(cap)?PBYID[cap]:null, xp=S(xi,'xs')+(capP?capP.xs:0);
     const bx=bench.filter(x=>x!=null), val=cost(sq), left=budget-val, pts=S(xi,'pts'), gw=Math.max(1,D.gw);
     const own=xi.length?S(xi,'sel')/xi.length:0, fdr=xi.length?ps.reduce((s,p)=>s+fdrAvg(p.team),0)/xi.length:0;
     const risk=sq.map(id=>PBYID[id]).filter(p=>p.status!=='a');
     const clubOver=Object.entries(sq.reduce((o,id)=>{const t=PBYID[id].team;o[t]=(o[t]||0)+1;return o},{})).filter(([,n])=>n>3);
     const stat=(l,v,t,cls)=>`<div class="lst${cls?' '+cls:''}"${t?` title="${t}"`:''}><span>${l}</span><b>${v}</b></div>`;
-    sum.innerHTML=`<div class="lbig"><span>xP GW${D.next.id}</span><b>${xp.toFixed(1)}</b><small>${capP?'C: '+esc(capP.name)+' ×2':'Ingen kaptein'}</small></div>
+    sum.innerHTML=`<div class="lbig"><span>xP GW${D.next.id+selOff}</span><b>${xp.toFixed(1)}</b><small>${capP?'C: '+esc(capP.name)+' ×2':'Ingen kaptein'}</small></div>
       <div class="lsts">
        ${stat('Budsjett igjen',`£${left.toFixed(1)}m`,`Brukt £${val.toFixed(1)}m av £${budget.toFixed(1)}m for hele troppen`,left<-1e-9?'neg':'')}
        ${stat('Troppsverdi',`£${val.toFixed(1)}m`,'Sum pris for alle '+sq.length+' spillere')}
-       ${stat('Benk xP',S(bx,'xp').toFixed(1),'Forventede poeng for benken (teller ikke i totalen)')}
+       ${stat('Benk xP',S(bx,'xs').toFixed(1),'Forventede poeng for benken (teller ikke i totalen)')}
        ${stat('Formasjon',xi.length?`${cnt(xi,2)}-${cnt(xi,3)}-${cnt(xi,4)}`:'–')}
        ${stat('Poeng totalt',pts,'Sum FPL-poeng denne sesongen for startelleveren')}
        ${stat('Poeng/runde',(pts/gw).toFixed(1),'Totalpoeng delt på '+gw+' spilte runder')}
@@ -899,7 +911,7 @@ renderC();
       ${risk.length?`<p class="lwarn">Usikre: ${risk.map(p=>`${esc(p.name)} (${p.chance!=null?p.chance+' %':stTitle[p.status]})`).join(', ')}</p>`:''}`;
     const g0=D.next.id;
     const lrow=(id,i,bn)=>{const p=PBYID[id];return `<tr><td class="nm1"><div class="n1"><span class="nmt">${esc(p.name)}${id===cap&&!bn?' (C)':id===vice&&!bn?' (V)':''}</span></div><small>${badge(p.team)} ${POS[p.pos]} · £${p.price.toFixed(1)}</small></td><td class="sum">${p.xp5s.toFixed(1)}</td>${p.xp5.map(x=>`<td><div class="gwc"><span class="fdr">${x.fl.length?x.fl.map(chip).join(''):'<i class="d3">–</i>'}</span><b>${x.fl.length?x.xp.toFixed(1):'–'}</b></div></td>`).join('')}</tr>`};
-    const ord=[...xi].sort((a,b)=>PBYID[a].pos-PBYID[b].pos||PBYID[b].xp-PBYID[a].xp), bl=bench.filter(x=>x!=null);
+    const ord=[...xi].sort((a,b)=>PBYID[a].pos-PBYID[b].pos||PBYID[b].xs-PBYID[a].xs), bl=bench.filter(x=>x!=null);
     const tot=ids=>ids.reduce((s,id)=>s+PBYID[id].xp5s,0);
     document.getElementById('llist').innerHTML=`<div class="phead"><h3>Laget: neste 5 kamper</h3></div><p>Motstander og forventede poeng (xP) per runde for hver spiller i troppen. Σ xP er summen over de fem rundene.</p>`+(sq.length?`<div class="hscroll"><table class="wide5"><thead><tr><th class="nm1">Spiller</th><th class="sum">Σ xP</th>${[0,1,2,3,4].map(i=>`<th>GW${g0+i}</th>`).join('')}</tr></thead><tbody>
       <tr class="sep"><td colspan="7">Startellever · Σ xP ${tot(xi).toFixed(1)}</td></tr>${ord.map(id=>lrow(id,0,false)).join('')}
@@ -956,11 +968,11 @@ renderC();
     if(!bn&&res.length===15){const low=[...res].sort((a,b)=>b.y-a.y).slice(0,4);if(low.filter(h=>h.p.pos===1).length===1)bn=low.map(h=>h.p.id)}
     let x;
     if(bn){x=ids.filter(id=>!bn.includes(id));bench=[bn.find(id=>PBYID[id].pos===1)??null,...bn.filter(id=>PBYID[id].pos!==1)].concat([null,null,null,null]).slice(0,4)}
-    else{x=bestXI(ids,p=>p.xp);const b=ids.filter(id=>!x.includes(id));bench=[b.find(id=>PBYID[id].pos===1)??null,...b.filter(id=>PBYID[id].pos!==1)].concat([null,null,null,null]).slice(0,4)}
+    else{x=bestXI(ids,p=>p.xs);const b=ids.filter(id=>!x.includes(id));bench=[b.find(id=>PBYID[id].pos===1)??null,...b.filter(id=>PBYID[id].pos!==1)].concat([null,null,null,null]).slice(0,4)}
     xi=x;
     const val=cost(xi.concat(bench.filter(v=>v!=null))), need=Math.ceil((val+(15-res.length)*6)*2)/2;
     if(need>budget){budget=Math.min(150,need);bIn.value=budget;budgetNote=` Budsjettet er satt til £${budget.toFixed(1)}m fordi prisene har endret seg siden du kjøpte spillerne. Juster det i Budsjett-feltet om det ikke stemmer.`}
-    const byXp=[...xi].sort((a,b)=>PBYID[b].xp-PBYID[a].xp);cap=byXp[0]??null;vice=byXp[1]??null;swapSel=null;
+    const byXp=[...xi].sort((a,b)=>PBYID[b].xs-PBYID[a].xs);cap=byXp[0]??null;vice=byXp[1]??null;swapSel=null;
     const sure=h=>h.d===0&&h.conf>=75, unsure=res.filter(h=>!sure(h)).map(h=>`${h.p.name} (lest som «${h.raw}»)`);
     const miss=[1,2,3,4].map(k=>[SQ[k]-res.filter(h=>h.p.pos===k).length,PN[k]]).filter(x=>x[0]>0).map(x=>`${x[0]} ${x[1]}`);
     window.fplOcrInfo=unsure.length?` Usikre treff: ${unsure.join(', ')}.`:'';
