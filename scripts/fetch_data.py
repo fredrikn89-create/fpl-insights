@@ -30,7 +30,11 @@ def main(out="data.json"):
     b = get("bootstrap-static/")
     events = b["events"]
     finished = [e["id"] for e in events if e.get("finished")]
-    cur = max(finished) if finished else 0
+    # Siste runde med spilte kamper: ferdige runder pluss pågående runde (FPL setter «finished»
+    # først etter bonus/datasjekk, mens totalene i bootstrap-static allerede inkluderer kampene)
+    current = [e["id"] for e in events if e.get("is_current")]
+    cur = max(finished + current) if (finished or current) else 0
+    print(f"  ferdige runder: {max(finished) if finished else 0}, pågående: {current}, bruker GW{cur}", file=sys.stderr)
     nxt = next((e for e in events if e.get("is_next")), None)
     if nxt is None:
         raise SystemExit("Fant ingen kommende runde (sesongen ferdig?)")
